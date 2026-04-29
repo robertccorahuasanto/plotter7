@@ -1,0 +1,3718 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0f172a" />
+<title>Cardiac Digital Twin</title>
+<style>
+:root{--bg:#0b1220;--panel:#101a2e;--panel-2:#16223c;--text:#e5eefc;--muted:#9fb0cf;--accent:#60a5fa;--accent-2:#22c55e;--danger:#ef4444;--warn:#f59e0b;--line:#223253;--tribo:#ff5c5c;--ecg:#5aa7ff;--pat:#37d67a;--foot:#ffd166;--rpeak:#ff4d6d;--twin:#a78bfa;--normal:#22c55e;--pvc:#ef4444;--pac:#f59e0b;--abnormal:#f97316;--qg:#22c55e;--qm:#f59e0b;--qp:#ef4444}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:linear-gradient(180deg,#07101f 0%,#0b1220 100%);color:var(--text)}
+.wrap{max-width:1320px;margin:0 auto;padding:4px 8px}
+h1{margin:0;font-size:.88rem;font-weight:700}
+.sub{color:var(--muted);font-size:.65rem;margin-bottom:4px}
+.grid{display:grid;grid-template-columns:1.45fr .5fr;gap:6px}
+body.collapsed .grid{grid-template-columns:1fr}
+body.collapsed .grid > div:nth-child(2){display:none}
+
+/* compact unified top bar: orb + state + metrics + actions in one row */
+.topbar{display:grid;grid-template-columns:auto 1fr auto;gap:6px;align-items:center;padding:4px 7px;margin-bottom:4px;background:linear-gradient(135deg,rgba(91,33,182,.16) 0%,rgba(16,26,46,.94) 60%);border:1px solid #3b2466;border-radius:7px}
+.topbar-metrics{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:2px}
+.topbar-metrics .m{background:rgba(22,34,60,.7);border:1px solid #243553;border-radius:4px;padding:1px 4px;min-width:0}
+.topbar-metrics .mk{color:var(--muted);font-size:.55rem;text-transform:uppercase;letter-spacing:.04em;line-height:1}
+.topbar-metrics .mv{font-size:.78rem;font-weight:700;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-metrics .md{font-size:.54rem;color:var(--muted);line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-metrics .md.up{color:#fca5a5}.topbar-metrics .md.dn{color:#86efac}
+.topbar-actions{display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-end;max-width:340px}
+.topbar-actions .tb-btn{min-height:26px;padding:3px 8px;font-size:.74rem;font-weight:600;min-width:0;border-radius:6px}
+.lead-toggle{display:inline-flex;background:#0f1a30;border:1px solid #2c426c;border-radius:6px;overflow:hidden;margin-right:4px}
+.lead-toggle .lead-btn{background:transparent;border:none;color:var(--muted);padding:3px 9px;font-size:.72rem;font-weight:600;cursor:pointer;min-height:26px;border-radius:0;border-right:1px solid #2c426c}
+.lead-toggle .lead-btn:last-child{border-right:none}
+.lead-toggle .lead-btn:hover{background:rgba(124,58,237,.15);color:var(--text)}
+.lead-toggle .lead-btn.active{background:#6d28d9;color:#fff}
+#motionAdaptBtn.active{background:#0891b2;color:#fff;border-color:#0891b2}
+.sim-slider-label{display:inline-flex;align-items:center;gap:5px;font-size:.65rem;color:var(--muted)}
+.sim-slider-key{background:#0f1a30;border:1px solid #2c426c;border-radius:4px;padding:1px 5px;font-weight:700;letter-spacing:.05em;color:#34d399}
+.sim-slider-label input[type=range]{width:80px;accent-color:#34d399}
+#simHRVal{font-weight:700;color:#34d399;min-width:42px;text-align:right}
+.twin-menu-dropdown{position:absolute;top:100%;right:0;margin-top:4px;background:#0f1a30;border:1px solid #2c426c;border-radius:8px;padding:6px;min-width:240px;z-index:100;box-shadow:0 8px 22px rgba(0,0,0,.5)}
+.twin-menu-section{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:4px 6px}
+.twin-menu-item{display:block;width:100%;text-align:left;background:transparent;border:none;color:var(--text);padding:5px 8px;font-size:.78rem;cursor:pointer;border-radius:4px}
+.twin-menu-item:hover{background:rgba(124,58,237,.2)}
+.twin-menu-dropdown hr{border:none;border-top:1px solid #2c426c;margin:4px 0}
+.twin-profile-list{padding:2px 6px;max-height:160px;overflow-y:auto;font-size:.74rem}
+.twin-profile-list .row{display:flex;justify-content:space-between;align-items:center;gap:4px;padding:2px 0}
+.twin-profile-list .row .name{cursor:pointer;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.twin-profile-list .row .name:hover{color:#a78bfa}
+.twin-profile-list .row .meta{font-size:.6rem;color:var(--muted)}
+.twin-profile-list .row .del{background:transparent;border:none;color:#fca5a5;cursor:pointer;font-size:.7rem;padding:0 4px}
+.twin-menu-empty{color:var(--muted);font-style:italic;font-size:.7rem;padding:2px 0}
+@media(max-width:1380px){.topbar{grid-template-columns:auto 1fr;grid-template-rows:auto auto}.topbar-actions{grid-column:1/-1;max-width:none;justify-content:flex-start}.topbar-metrics{grid-column:1/-1}}
+@media(max-width:1100px){.topbar-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:920px){.topbar{grid-template-columns:auto 1fr;grid-template-rows:auto auto auto}.topbar-metrics{grid-column:1/-1;grid-template-columns:repeat(4,minmax(0,1fr))}.topbar-actions{grid-column:1/-1;justify-content:flex-start}}
+@media(max-width:520px){.topbar-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.statusbar{padding:3px 8px;font-size:.72rem;margin-bottom:4px;border-radius:5px}
+.drift-strip{display:flex;align-items:center;gap:6px;padding:3px 8px;margin-bottom:4px;border-radius:5px;font-size:.7rem;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#fcd34d}
+.drift-strip.stale{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.5);color:#fca5a5}
+.drift-icon{font-size:1rem;line-height:1}
+.drift-text{flex:1}
+.drift-recal{background:#fcd34d;color:#451a03;border:none;border-radius:4px;padding:2px 8px;font-weight:700;font-size:.66rem;cursor:pointer}
+.drift-recal:hover{background:#fde68a}
+.drift-strip.stale .drift-recal{background:#fca5a5;color:#7f1d1d}
+.bookmark-list{max-height:200px;overflow-y:auto;font-size:.7rem}
+.bookmark-empty{color:var(--muted);font-style:italic;font-size:.65rem;display:block;padding:4px 0}
+.bookmark-item{padding:4px 5px;border:1px solid #243553;border-radius:4px;margin-bottom:3px;background:rgba(15,26,46,0.6);cursor:pointer;transition:.2s}
+.bookmark-item:hover{border-color:#fbbf24;background:rgba(251,191,36,.08)}
+.bookmark-item .head{display:flex;justify-content:space-between;align-items:center;gap:5px;font-weight:600}
+.bookmark-item .time{color:#fbbf24;font-size:.64rem;font-variant-numeric:tabular-nums}
+.bookmark-item .label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.7rem}
+.bookmark-item .del{background:transparent;border:none;color:#fca5a5;cursor:pointer;padding:0 3px;font-size:.8rem}
+.bookmark-item .meta{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:2px;font-size:.58rem;color:var(--muted)}
+.bookmark-item .meta b{color:var(--text);font-weight:600}
+.card{background:rgba(16,26,46,.94);border:1px solid var(--line);border-radius:7px;padding:6px;box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.twin-hero{background:linear-gradient(135deg,rgba(91,33,182,.18) 0%,rgba(16,26,46,.94) 60%);border:1px solid #3b2466;border-radius:12px;padding:10px 12px;margin-bottom:10px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}
+.twin-orb{width:42px;height:42px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#c4b5fd 0%,#7c3aed 45%,#4c1d95 100%);box-shadow:0 0 16px rgba(139,92,246,.3),inset 0 0 12px rgba(0,0,0,.5);position:relative;flex-shrink:0;transition:.4s ease}
+.twin-orb.warn{background:radial-gradient(circle at 30% 30%,#fde68a 0%,#f59e0b 45%,#78350f 100%);box-shadow:0 0 22px rgba(245,158,11,.45),inset 0 0 16px rgba(0,0,0,.5)}
+.twin-orb.alert{background:radial-gradient(circle at 30% 30%,#fecaca 0%,#ef4444 45%,#7f1d1d 100%);box-shadow:0 0 26px rgba(239,68,68,.5),inset 0 0 16px rgba(0,0,0,.5)}
+.twin-orb.idle{background:radial-gradient(circle at 30% 30%,#94a3b8 0%,#475569 45%,#1e293b 100%);box-shadow:0 0 10px rgba(100,116,139,.18),inset 0 0 16px rgba(0,0,0,.5)}
+.twin-orb::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1px dashed rgba(167,139,250,.28);animation:spin 16s linear infinite}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.twin-info{min-width:0}
+.twin-state-label{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:1px}
+.twin-state{font-size:.92rem;font-weight:700;letter-spacing:-.01em;margin-bottom:1px;line-height:1.1}
+.twin-divergence{color:var(--muted);font-size:.72rem;line-height:1.1}
+.twin-divergence b{color:var(--text)}
+.twin-actions{display:flex;flex-direction:column;gap:5px}
+.twin-actions button{min-width:130px;min-height:32px;padding:6px 10px;font-size:.82rem}
+.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.section-title{font-size:.85rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;font-weight:600}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+button,input[type=number],input[type=text]{background:var(--panel-2);border:1px solid #2c426c;color:var(--text);border-radius:10px;padding:9px 12px;font:inherit;font-size:.92rem}
+button{cursor:pointer;min-height:40px;font-weight:600}
+button.primary{background:#1d4ed8}
+button.danger{background:#991b1b}
+button.secondary{background:#1e293b}
+button.twin{background:#6d28d9}
+button:disabled{opacity:.5;cursor:not-allowed}
+label{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0;color:var(--muted);font-size:.9rem}
+label>span:first-child{min-width:110px}
+input[type=range]{width:100%}
+input[type=checkbox]{transform:scale(1.2)}
+.metrics{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px}
+.metric{background:rgba(22,34,60,.85);border:1px solid #243553;border-radius:8px;padding:6px 8px;min-width:0}
+.metric .k{color:var(--muted);font-size:.66rem;margin-bottom:1px;text-transform:uppercase;letter-spacing:.03em;line-height:1.1}
+.metric .v{font-size:.95rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
+.metric .u{font-size:.65rem;color:var(--muted);font-weight:400;margin-left:2px}
+.metric .delta{font-size:.62rem;color:var(--muted);margin-top:1px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.metric .delta.up{color:#fca5a5}.metric .delta.dn{color:#86efac}.metric .delta.flat{color:var(--muted)}
+.status{padding:4px 9px;border-radius:7px;background:#10213e;border:1px solid #23406a;color:var(--muted);margin-bottom:4px;word-break:break-word;font-size:.76rem}
+.status.ok{color:#9ae6b4;border-color:#22543d;background:#0d2518}
+.status.warn{color:#fde68a;border-color:#854d0e;background:#2a1b05}
+.status.err{color:#fecaca;border-color:#7f1d1d;background:#2a0d10}
+.status.twin{color:#ddd6fe;border-color:#5b21b6;background:#1e1438}
+.plot-card{padding:4px 5px 5px}
+.plot-title{font-size:.74rem;font-weight:700;margin:0 3px 3px;display:flex;justify-content:space-between;align-items:center;gap:5px}
+.plot-title .badges{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.plot-title .badge{font-size:.72rem;color:var(--muted);font-weight:500;background:#1a2540;border:1px solid #2c426c;padding:2px 8px;border-radius:999px}
+.plot-title .badge.q{display:inline-flex;align-items:center;gap:5px}
+.plot-title .badge.q::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--qg);display:inline-block}
+.plot-title .badge.q.marginal::before{background:var(--qm)}
+.plot-title .badge.q.poor::before{background:var(--qp)}
+.plot-title .badge.q.idle::before{background:#475569}
+canvas.plot{width:100%;height:120px;display:block;background:#091120;border:1px solid #223253;border-radius:8px;touch-action:manipulation}
+canvas.plot.tall{height:170px}
+canvas.plot.short{height:78px}
+canvas.plot.tiny{height:68px}
+canvas.plot.square{aspect-ratio:1;height:auto}
+.telemetry-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.telemetry-cell{background:rgba(15,26,46,0.5);border:1px solid #1f2c46;border-radius:5px;padding:3px 4px}
+.telemetry-label{font-size:.58rem;color:var(--muted);margin-bottom:2px;display:flex;align-items:center;gap:4px}
+.telemetry-label .key{font-weight:700}
+@media(max-width:920px){.telemetry-grid{grid-template-columns:1fr}}
+.dual-plot{display:grid;grid-template-columns:200px 1fr;gap:6px}
+.dual-plot.split{grid-template-columns:1fr 1fr}
+@media(max-width:920px){.dual-plot{grid-template-columns:1fr}}
+.beat-strip{display:flex;gap:3px;padding:6px 4px;flex-wrap:wrap}
+.beat-pip{width:12px;height:18px;border-radius:3px;background:var(--normal);flex-shrink:0}
+.beat-pip.pvc{background:var(--pvc)}
+.beat-pip.pac{background:var(--pac)}
+.beat-pip.abnormal{background:var(--abnormal)}
+.beat-pip.unknown{background:#475569}
+.insight-list{list-style:none;padding:0;margin:0;font-size:.9rem}
+.insight-list li{padding:7px 0;border-top:1px dashed #2c3f63;color:var(--muted)}
+.insight-list li:first-child{border-top:none}
+.insight-list li b{color:var(--text)}
+.insight-list li.good b{color:#86efac}.insight-list li.warn b{color:#fde68a}.insight-list li.alert b{color:#fca5a5}
+.footer-note{color:var(--muted);font-size:.78rem;line-height:1.45;margin-top:10px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85rem}
+details.collapsible{margin-top:10px;border-top:1px solid #2c3f63;padding-top:10px}
+details.collapsible>summary{cursor:pointer;color:var(--muted);font-size:.85rem;text-transform:uppercase;letter-spacing:.06em;list-style:none;padding:4px 0}
+details.collapsible>summary::-webkit-details-marker{display:none}
+details.collapsible>summary::after{content:' ▾';color:var(--muted)}
+details.collapsible[open]>summary::after{content:' ▴'}
+.legend{display:flex;gap:6px;flex-wrap:wrap;font-size:.6rem;color:var(--muted);padding:2px 3px 1px}
+.legend span{display:inline-flex;align-items:center;gap:3px}
+.legend i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.report-pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.83rem;line-height:1.55;color:var(--text);background:#050b18;border:1px solid #1a2540;border-radius:10px;padding:14px;margin:0;max-height:480px;overflow-y:auto;white-space:pre-wrap}
+@media(max-width:1100px){.metrics{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:920px){.grid{grid-template-columns:1fr}.controls{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(4,minmax(0,1fr))}canvas.plot{height:110px}canvas.plot.tall{height:150px}canvas.plot.short{height:70px}canvas.plot.tiny{height:60px}.twin-hero{grid-template-columns:auto 1fr}.twin-actions{grid-column:1/-1;flex-direction:row}.twin-actions button{flex:1;min-width:0}.twin-orb{width:36px;height:36px}.twin-state{font-size:.82rem}}
+@media(max-width:520px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:921px){.grid > div:nth-child(2){position:sticky;top:8px;align-self:start;max-height:calc(100vh - 16px);overflow-y:auto}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Cardiac Digital Twin</h1>
+<div class="sub">Personalized ECG model · BLE live · MAX30003 + triboelectric pulse</div>
+
+<!-- ===== UNIFIED COMPACT TOP BAR ===== -->
+<div class="topbar">
+  <div id="twinOrb" class="twin-orb idle"></div>
+  <div class="twin-info">
+    <div class="twin-state" id="twinState">Awaiting signal</div>
+    <div class="twin-divergence" id="twinDivergence">Connect, then calibrate baseline at rest.</div>
+  </div>
+  <div class="topbar-metrics">
+    <div class="m"><div class="mk">HR</div><div class="mv" id="hrValue">—</div><div class="md flat" id="hrDelta">—</div></div>
+    <div class="m"><div class="mk">SDNN</div><div class="mv" id="sdnnValue">—</div><div class="md flat" id="sdnnDelta">—</div></div>
+    <div class="m"><div class="mk">RMSSD</div><div class="mv" id="rmssdValue">—</div><div class="md flat" id="rmssdDelta">—</div></div>
+    <div class="m"><div class="mk">pNN50</div><div class="mv" id="pnn50Value">—</div><div class="md flat" id="pnn50Delta">—</div></div>
+    <div class="m"><div class="mk">LF/HF</div><div class="mv" id="lfhfValue">—</div><div class="md flat" id="lfhfDelta">—</div></div>
+    <div class="m"><div class="mk">SD1·2</div><div class="mv" id="sdvalues">—·—</div><div class="md flat">Poincaré</div></div>
+    <div class="m"><div class="mk">DIV</div><div class="mv" id="divergenceValue">—</div><div class="md flat" id="divergenceDelta">—</div></div>
+    <div class="m"><div class="mk">ANOM</div><div class="mv" id="anomalyValue">—</div><div class="md flat" id="anomalyDetail">avg / max</div></div>
+    <div class="m"><div class="mk">PAT</div><div class="mv" id="patValue">—</div><div class="md flat" id="patDelta">—</div></div>
+  </div>
+  <div class="topbar-actions">
+    <div class="lead-toggle" role="group" aria-label="Lead position">
+      <button id="leadChestBtn" class="lead-btn active" data-mode="chest" title="Chest lead preset (large amplitude, stable baseline)">Chest</button>
+      <button id="leadFingersBtn" class="lead-btn" data-mode="fingers" title="Fingers preset (small amplitude, prone to drift)">Fingers</button>
+      <button id="leadCustomBtn" class="lead-btn" data-mode="custom" title="Custom — manual settings">Custom</button>
+    </div>
+    <button id="motionAdaptBtn" class="secondary tb-btn" title="Motion-adaptive ectopic detection — useful when lead is shifting due to movement (driving, holding a baby, exercise). Distinguishes single weird beats from sustained morphology drift.">Motion: off</button>
+    <button id="markBtn" class="secondary tb-btn" title="Add a bookmark at the current moment. Useful for marking subjective experiences (felt a flutter, took a deep breath, etc).">🔖 Mark</button>
+    <div class="twin-profile-menu" style="position:relative">
+      <button id="twinMenuBtn" class="secondary tb-btn" title="Twin profile: save, load, manage">Twin ▾</button>
+      <div id="twinMenuDropdown" class="twin-menu-dropdown" style="display:none">
+        <div class="twin-menu-section">Active: <strong id="twinMenuCurrentName">default</strong></div>
+        <button class="twin-menu-item" id="twinSaveBtn">Save now (browser)</button>
+        <button class="twin-menu-item" id="twinSaveAsBtn">Save as new profile…</button>
+        <hr/>
+        <div class="twin-menu-section">Stored profiles</div>
+        <div id="twinProfileList" class="twin-profile-list"><em class="twin-menu-empty">none yet</em></div>
+        <hr/>
+        <button class="twin-menu-item" id="twinExportBtn">Download .twin.json</button>
+        <button class="twin-menu-item" id="twinImportBtn">Import .twin.json…</button>
+        <button class="twin-menu-item" id="twinImportCsvBtn">Import from session CSV…</button>
+        <input id="twinImportFile" type="file" accept=".json" style="display:none"/>
+        <input id="twinImportCsvFile" type="file" accept=".csv" style="display:none"/>
+      </div>
+    </div>
+    <button id="connectBtn" class="primary tb-btn">Connect</button>
+    <button id="reconnectBtn" class="secondary tb-btn" disabled>Reconnect</button>
+    <button id="disconnectBtn" class="danger tb-btn" disabled>Disconnect</button>
+    <button id="calibrateBtn" class="twin tb-btn">Calibrate</button>
+    <button id="resetTwinBtn" class="secondary tb-btn">Reset</button>
+    <button id="clearBtn" class="secondary tb-btn">Clear</button>
+    <button id="exportBtn" class="secondary tb-btn">Export</button>
+    <button id="reportBtn" class="secondary tb-btn">Report</button>
+    <button id="toggleSideBtn" class="secondary tb-btn" title="Toggle controls panel">☰</button>
+  </div>
+</div>
+
+<!-- thin status strip -->
+<div id="status" class="status warn statusbar">Ready. Open in Chrome/Edge on a supported device, then tap Connect.</div>
+<div id="driftStrip" class="drift-strip" style="display:none">
+  <span class="drift-icon">●</span>
+  <span class="drift-text">Twin baseline drift: <span id="driftDetail">monitoring…</span></span>
+  <button id="driftRecalBtn" class="drift-recal">Recalibrate</button>
+</div>
+
+<div class="grid">
+  <div>
+    <div class="card plot-card">
+      <div class="plot-title">
+        <span>ECG · live</span>
+        <span class="badges">
+          <span class="badge q idle" id="qualityBadge">signal</span>
+          <span class="badge" id="ecgBadge">— sps</span>
+        </span>
+      </div>
+      <canvas id="ecgCanvas" class="plot tall"></canvas>
+      <div class="legend">
+        <span><i style="background:var(--ecg)"></i> ECG signal</span>
+        <span><i style="background:var(--normal)"></i> Normal</span>
+        <span><i style="background:var(--pvc)"></i> PVC</span>
+        <span><i style="background:var(--pac)"></i> Premature</span>
+        <span><i style="background:var(--abnormal)"></i> Atypical</span>
+        <span><i style="background:#475569"></i> Rejected</span>
+      </div>
+    </div>
+
+    <div class="card plot-card" style="margin-top:4px">
+      <div class="plot-title">
+        <span>Beat template — your twin's reference beat</span>
+        <span style="display:flex;gap:6px;align-items:center">
+          <label class="sim-slider-label" title="Simulate predicted beat at any HR — the green prediction line will show what your beat looks like at the chosen HR rather than your current HR.">
+            <span class="sim-slider-key">SIM</span>
+            <input id="simHRSlider" type="range" min="40" max="140" step="1" value="0" />
+            <span id="simHRVal">live</span>
+          </label>
+          <span class="badge" id="templateBadge">0 beats</span>
+        </span>
+      </div>
+      <canvas id="templateCanvas" class="plot"></canvas>
+      <div class="legend">
+        <span><i style="background:#34d399"></i> Predicted at <span id="predHRLabel">current HR</span></span>
+        <span><i style="background:var(--twin)"></i> Global template</span>
+        <span><i style="background:#5aa7ff;opacity:.4"></i> Recent beats</span>
+        <span><i style="background:#fde68a"></i> Most recent</span>
+        <span><i style="background:#fb7185"></i> Residual (live − predicted)</span>
+      </div>
+    </div>
+
+    <div class="card plot-card" style="margin-top:4px">
+      <div class="plot-title">
+        <span>HR-conditioned beat family — your twin across heart rates</span>
+        <span class="badge" id="hrHeatmapBadge">— bins covered</span>
+      </div>
+      <canvas id="hrHeatmapCanvas" class="plot tall"></canvas>
+      <div class="legend">
+        <span>x = time within beat (ms)</span>
+        <span>y = heart rate (bpm)</span>
+        <span>color = template amplitude (low → high)</span>
+        <span><i style="background:#34d399"></i> current HR row</span>
+      </div>
+    </div>
+
+    <!-- ============== TWIN TELEMETRY (F1, CC-new1, CC-new4, CC-new3) ============== -->
+    <div class="card plot-card" style="margin-top:4px">
+      <div class="plot-title">
+        <span>Twin telemetry</span>
+        <span class="badge" id="telemetryBadge">— mismatch</span>
+      </div>
+      <div class="telemetry-grid">
+        <div class="telemetry-cell">
+          <div class="telemetry-label">Live mismatch (twin vs reality, per beat) <span class="key" style="color:#fb7185">▮</span></div>
+          <canvas id="mismatchCanvas" class="plot tiny"></canvas>
+        </div>
+        <div class="telemetry-cell">
+          <div class="telemetry-label">T-wave residual (cognitive-load fingerprint) <span class="key" style="color:#a78bfa">▮</span></div>
+          <canvas id="twaveCanvas" class="plot tiny"></canvas>
+        </div>
+        <div class="telemetry-cell">
+          <div class="telemetry-label">Twin-fit map (residual vs HR vs time)</div>
+          <canvas id="fitMapCanvas" class="plot tiny"></canvas>
+        </div>
+        <div class="telemetry-cell">
+          <div class="telemetry-label">Recovery time after stress events <span class="key" style="color:#34d399">▮</span></div>
+          <canvas id="recoveryCanvas" class="plot tiny"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card plot-card" style="margin-top:4px">
+      <div class="plot-title"><span>RR tachogram</span><span class="badge" id="rrBadge">0 RR</span></div>
+      <canvas id="rrCanvas" class="plot"></canvas>
+    </div>
+
+    <div class="dual-plot" style="margin-top:4px">
+      <div class="card plot-card">
+        <div class="plot-title"><span>Poincaré</span><span class="badge" id="poincareBadge">— pts</span></div>
+        <canvas id="poincareCanvas" class="plot square"></canvas>
+        <div class="legend"><span><i style="background:var(--twin)"></i> SD1·SD2 ellipse</span></div>
+      </div>
+      <div class="card plot-card">
+        <div class="plot-title"><span>HRV spectrogram · 0–0.5 Hz</span><span class="badge" id="specBadge">— cols</span></div>
+        <canvas id="spectrogramCanvas" class="plot"></canvas>
+        <div class="legend"><span>VLF</span><span>·</span><span>LF (0.04–0.15)</span><span>·</span><span>HF (0.15–0.4)</span></div>
+      </div>
+    </div>
+
+    <div class="dual-plot split" style="margin-top:4px">
+      <div class="card plot-card">
+        <div class="plot-title"><span>HR trend</span><span class="badge" id="hrTrendBadge">— bpm</span></div>
+        <canvas id="trendHRCanvas" class="plot short"></canvas>
+      </div>
+      <div class="card plot-card">
+        <div class="plot-title"><span>RMSSD trend</span><span class="badge" id="rmssdTrendBadge">— ms</span></div>
+        <canvas id="trendRMSSDCanvas" class="plot short"></canvas>
+      </div>
+    </div>
+
+    <div class="card plot-card" style="margin-top:4px">
+      <div class="plot-title"><span>PAT</span><span class="badge" id="patBadge">— ms</span></div>
+      <canvas id="patCanvas" class="plot short"></canvas>
+    </div>
+
+    <div class="card plot-card" style="margin-top:4px">
+      <div class="plot-title"><span>Triboelectric pulse · verification only</span><span class="badge" id="triboBadge">— sps</span></div>
+      <canvas id="triboCanvas" class="plot short"></canvas>
+    </div>
+
+    <div id="reportCard" class="card" style="margin-top:12px;display:none">
+      <div class="plot-title">
+        <span>Session report</span>
+        <span class="badges">
+          <button id="downloadReportBtn" class="secondary" style="min-height:32px;padding:6px 12px">Download .txt</button>
+          <button id="closeReportBtn" class="secondary" style="min-height:32px;padding:6px 12px">Close</button>
+        </span>
+      </div>
+      <pre id="reportContent" class="report-pre"></pre>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="metrics" style="grid-template-columns:1fr 1fr">
+        <div class="metric"><div class="k">Connection</div><div class="v" id="connectionValue">Disconnected</div></div>
+        <div class="metric"><div class="k">Device</div><div class="v mono" id="deviceValue">—</div></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:4px">
+      <div class="section-title">Recent beats</div>
+      <div class="beat-strip" id="beatStrip"></div>
+      <div class="footer-note" style="margin-top:0">Last 80 beats · color = classification</div>
+    </div>
+
+    <div class="card" style="margin-top:4px">
+      <div class="section-title">Twin insights</div>
+      <ul id="insights" class="insight-list"><li>Awaiting data...</li></ul>
+    </div>
+
+    <div class="card" style="margin-top:4px">
+      <div class="section-title">Bookmarks <span id="bookmarkCount" style="color:var(--muted);font-weight:400;font-size:.7rem">— none yet</span></div>
+      <div id="bookmarkList" class="bookmark-list"><em class="bookmark-empty">Click 🔖 Mark in the topbar to capture moments. Twin readings at that instant will be saved here.</em></div>
+    </div>
+
+    <div class="card" style="margin-top:4px">
+      <details class="collapsible" open>
+        <summary>Signal &amp; display</summary>
+        <label><span>Bandpass filter</span><input id="filterEnable" type="checkbox" checked /></label>
+        <label><span>HP cutoff (Hz)</span><input id="hpCut" type="number" value="0.5" min="0.1" max="5" step="0.1" style="width:80px" /></label>
+        <label><span>LP cutoff (Hz)</span><input id="lpCut" type="number" value="35" min="10" max="60" step="1" style="width:80px" /></label>
+        <label><span>Reject low-quality</span><input id="sqiReject" type="checkbox" checked /></label>
+        <label><span>Invert ECG</span><input id="invertEcg" type="checkbox" /></label>
+        <label><span>Window (s)</span><input id="windowSec" type="number" value="6" min="1" max="60" step="1" /></label>
+      </details>
+      <details class="collapsible">
+        <summary>R-peak detector</summary>
+        <label><span>Threshold</span><input id="rpThresh" type="range" min="0.1" max="0.9" step="0.05" value="0.5" /><span id="rpThreshVal">0.50</span></label>
+        <label><span>Refractory (s)</span><input id="rpRefract" type="range" min="0.15" max="1.0" step="0.02" value="0.36" /><span id="rpRefractVal">0.36</span></label>
+        <label><span>T-wave reject (s)</span><input id="twaveWin" type="range" min="0.20" max="0.60" step="0.02" value="0.40" /><span id="twaveWinVal">0.40</span></label>
+        <label><span>T-wave amp ratio</span><input id="twaveRatio" type="range" min="0.30" max="0.90" step="0.05" value="0.60" /><span id="twaveRatioVal">0.60</span></label>
+      </details>
+      <details class="collapsible">
+        <summary>Pulse foot detector</summary>
+        <label><span>Slope %</span><input id="ftSlopeThresh" type="range" min="0.05" max="0.5" step="0.05" value="0.2" /><span id="ftSlopeThreshVal">0.20</span></label>
+        <label><span>Peak window (s)</span><input id="ftPeakHi" type="range" min="0.3" max="1.5" step="0.1" value="0.9" /><span id="ftPeakHiVal">0.90</span></label>
+      </details>
+      <details class="collapsible">
+        <summary>PAT</summary>
+        <label><span>Min (ms)</span><input id="pttMin" type="number" value="50" min="10" max="300" step="5" /></label>
+        <label><span>Max (ms)</span><input id="pttMax" type="number" value="500" min="100" max="1000" step="10" /></label>
+        <label><span>Offset (ms)</span><input id="pttOffset" type="range" min="0" max="150" step="5" value="55" /><span id="pttOffsetVal">55</span></label>
+      </details>
+      <details class="collapsible">
+        <summary>Twin sensitivity</summary>
+        <label><span>Morphology cutoff</span><input id="morphCutoff" type="range" min="0.6" max="0.98" step="0.01" value="0.85" /><span id="morphCutoffVal">0.85</span></label>
+        <label><span>Premature %</span><input id="prematureCutoff" type="range" min="0.7" max="0.95" step="0.01" value="0.85" /><span id="prematureCutoffVal">0.85</span></label>
+        <label><span>Baseline duration (s)</span><input id="baselineDur" type="number" value="60" min="20" max="300" step="10" /></label>
+      </details>
+      <details class="collapsible">
+        <summary>BLE UUIDs</summary>
+        <label><span>Service</span><input id="serviceUuid" type="text" value="cddf1000-30f7-4671-8b43-5e40ba53514a" /></label>
+        <label><span>Tribo</span><input id="triboUuid" type="text" value="cddf1002-30f7-4671-8b43-5e40ba53514a" /></label>
+        <label><span>ECG</span><input id="ecgUuid" type="text" value="cddf1004-30f7-4671-8b43-5e40ba53514a" /></label>
+      </details>
+      <div class="footer-note">Filter applied to live ECG before peak detection. Beats during low signal quality are rejected. Twin re-scores all baseline beats against the locked template after calibration so divergence starts near zero.</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+'use strict';
+
+const els = {};
+['status','connectBtn','reconnectBtn','disconnectBtn','clearBtn','exportBtn','reportBtn','downloadReportBtn','closeReportBtn','reportCard','reportContent','calibrateBtn','resetTwinBtn','leadChestBtn','leadFingersBtn','leadCustomBtn','motionAdaptBtn','markBtn','twinMenuBtn','twinMenuDropdown','twinMenuCurrentName','twinSaveBtn','twinSaveAsBtn','twinProfileList','twinExportBtn','twinImportBtn','twinImportCsvBtn','twinImportFile','twinImportCsvFile','anomalyValue','anomalyDetail','simHRSlider','simHRVal','predHRLabel','driftStrip','driftDetail','driftRecalBtn','bookmarkList','bookmarkCount','connectionValue','deviceValue','ecgBadge','qualityBadge','triboBadge','patBadge','templateBadge','rrBadge','poincareBadge','specBadge','hrTrendBadge','rmssdTrendBadge','hrValue','sdnnValue','rmssdValue','pnn50Value','lfhfValue','sdvalues','divergenceValue','patValue','hrDelta','sdnnDelta','rmssdDelta','pnn50Delta','lfhfDelta','divergenceDelta','patDelta','twinOrb','twinState','twinDivergence','beatStrip','insights','filterEnable','hpCut','lpCut','sqiReject','invertEcg','windowSec','serviceUuid','triboUuid','ecgUuid','rpThresh','rpThreshVal','rpRefract','rpRefractVal','twaveWin','twaveWinVal','twaveRatio','twaveRatioVal','ftSlopeThresh','ftSlopeThreshVal','ftPeakHi','ftPeakHiVal','pttMin','pttMax','pttOffset','pttOffsetVal','morphCutoff','morphCutoffVal','prematureCutoff','prematureCutoffVal','baselineDur','ecgCanvas','templateCanvas','hrHeatmapCanvas','hrHeatmapBadge','mismatchCanvas','twaveCanvas','fitMapCanvas','recoveryCanvas','telemetryBadge','rrCanvas','poincareCanvas','spectrogramCanvas','trendHRCanvas','trendRMSSDCanvas','patCanvas','triboCanvas'].forEach(id=>els[id]=document.getElementById(id));
+
+const C = {grid:'#1c2a47',gridSoft:'#152339',axis:'#7a8eb3',tribo:'#ff6b6b',ecg:'#5aa7ff',pat:'#37d67a',foot:'#ffd166',rpeak:'#ff4d6d',twin:'#a78bfa',bg:'#091120',normal:'#22c55e',pvc:'#ef4444',pac:'#f59e0b',abnormal:'#f97316',unknown:'#475569'};
+const CLS_COLOR = {normal:C.normal,pvc:C.pvc,pac:C.pac,abnormal:C.abnormal,unknown:C.unknown};
+
+const ECG_FS = 128;
+const BEFORE_MS = 200, AFTER_MS = 400;
+const BEFORE = Math.round(BEFORE_MS/1000*ECG_FS);
+const AFTER = Math.round(AFTER_MS/1000*ECG_FS);
+const BEAT_LEN = BEFORE + AFTER;
+
+const state = {
+  device:null, server:null, triboChar:null, ecgChar:null, isConnected:false,
+  tRxBuf:new Uint8Array(0), eRxBuf:new Uint8Array(0),
+  t_x:[], t_y:[], e_x:[], e_y:[],
+  save_t_x:[], save_t_y:[], save_e_x:[], save_e_y:[], save_e_y_raw:[],
+  maxBuffer:5000, maxSave:200000,
+  rPeaksT:[], rPeaksV:[], feetT:[], feetV:[],
+  patTimes:[], patValues:[],
+  processedBeatTimes:new Set(),
+  beats:[], maxBeats:600,
+  template:null, templateCount:0, templateMaxN:200,
+  motionAdaptive:false,         // motion-adaptive ectopic detection toggle
+  localTemplate:null,           // mean of last N high-sim beats (for context-aware classification)
+  localTemplateBeats:[],        // ring buffer of recent normal-looking beat vectors
+  currentTwinName:'default',    // active twin profile name
+  twinDirty:false,              // becomes true when twin params change → schedules autosave
+  lastTwinAutoSave:0,
+  bookmarks:[],                 // [{t, label, color}] — persistent marks across the session
+  fitMap:[],                    // [{hr, r, t}] for state-dependent twin-fit heatmap
+  twaveTrace:[],                // [{t, v}] T-wave residual over time
+  mismatchTrace:[],             // [{t, v}] live mismatch over time
+  recoveryEvents:[],             // [{tStart, tBackToBaseline, peakHR}] for recovery-time display
+  driftStatus:{level:'ok', age:0},  // updated each animation frame
+  hrModel:null,           // HR-conditioned twin: { templates: [Array|null]*N, eff_n: Float32Array }
+  baseline:null, baselineMode:false, baselineStart:0,
+  hrv:{hr:null,sdnn:null,rmssd:null,pnn50:null,lf:null,hf:null,lfHf:null,sd1:null,sd2:null},
+  trendHRtimes:[], trendHRvalues:[], trendRMSSDtimes:[], trendRMSSDvalues:[],
+  spectrogram:{columns:[], lastCalc:0, freqBins:48, fmax:0.5, maxCols:80, maxObserved:1},
+  twinDivergence:null, twinState:'idle', stateLog:[],
+  signalQuality:'idle', sqiSamples:[], lastSQICalc:0,
+  filterEnabled:true, hpCut:0.5, lpCut:35,
+  classCounts:{normal:0,pvc:0,pac:0,abnormal:0,unknown:0},
+  sessionStart:null,
+  lastRateTs:performance.now(), tCountLast:0, eCountLast:0,
+  lastHRVCalc:0, lastFreqHRVCalc:0, lastInsightsRefresh:0, lastDetectCalc:0, lastPlotDraw:0,
+  animationHandle:null,
+};
+
+// ============== BIQUAD ==============
+class Biquad {
+  constructor(){ this.b0=1;this.b1=0;this.b2=0;this.a1=0;this.a2=0;this.x1=0;this.x2=0;this.y1=0;this.y2=0; }
+  setHP(fc,fs,Q=0.7071){const w=2*Math.PI*fc/fs,c=Math.cos(w),s=Math.sin(w),a=s/(2*Q),a0=1+a;this.b0=(1+c)/2/a0;this.b1=-(1+c)/a0;this.b2=(1+c)/2/a0;this.a1=-2*c/a0;this.a2=(1-a)/a0;}
+  setLP(fc,fs,Q=0.7071){const w=2*Math.PI*fc/fs,c=Math.cos(w),s=Math.sin(w),a=s/(2*Q),a0=1+a;this.b0=(1-c)/2/a0;this.b1=(1-c)/a0;this.b2=(1-c)/2/a0;this.a1=-2*c/a0;this.a2=(1-a)/a0;}
+  process(x){const y=this.b0*x+this.b1*this.x1+this.b2*this.x2-this.a1*this.y1-this.a2*this.y2;this.x2=this.x1;this.x1=x;this.y2=this.y1;this.y1=y;return y;}
+  reset(){this.x1=this.x2=this.y1=this.y2=0;}
+}
+const ecgHP = new Biquad(), ecgLP = new Biquad();
+function configFilters(){
+  state.hpCut = Math.max(0.05, Math.min(5, Number(els.hpCut.value)||0.5));
+  state.lpCut = Math.max(10, Math.min(ECG_FS/2-5, Number(els.lpCut.value)||35));
+  ecgHP.setHP(state.hpCut, ECG_FS); ecgLP.setLP(state.lpCut, ECG_FS);
+  ecgHP.reset(); ecgLP.reset();
+}
+configFilters();
+// Simple bandpass: HP biquad + LP biquad. The R-peak detector has its own
+// robust MAD-based threshold + amplitude ceiling that rejects motion spikes,
+// so we don't need an additional sample-level clipper (a previous version
+// added one but it self-poisoned its own running stats and ended up
+// clipping real R-peaks — visible as cut/inverted peaks after the first beat).
+function filterSample(x){
+  return state.filterEnabled ? ecgLP.process(ecgHP.process(x)) : x;
+}
+
+// ============== SQI ==============
+function classifyQuality(std, drift, ptp, spikeRate, jumpStd){
+  // Mode-aware thresholds. Chest signals tolerate larger absolute drift and
+  // jumpStd because R-peaks are big; finger signals need tighter limits.
+  const p = (currentLeadMode === 'fingers') ? LEAD_PRESETS.fingers
+          : (currentLeadMode === 'chest') ? LEAD_PRESETS.chest
+          : LEAD_PRESETS.chest;   // fallback for custom
+  if (ptp < 5) return 'poor';
+  if (drift > std * p.sqiDriftPoor) return 'poor';
+  if (spikeRate > p.sqiSpikeRatePoor) return 'poor';
+  if (drift > std * p.sqiDriftMarginal || spikeRate > p.sqiSpikeRateMarginal) return 'marginal';
+  if (std < 8) return 'marginal';
+  return 'good';
+}
+function computeSQI(){
+  const W = 1.5;
+  if (state.e_x.length < ECG_FS*W) return;
+  const tEnd = state.e_x[state.e_x.length-1];
+  const tStart = tEnd - W;
+  let i0 = state.e_x.length - 1;
+  while (i0 > 0 && state.e_x[i0] > tStart) i0--;
+  const slice = state.e_y.slice(i0);
+  const n = slice.length;
+  if (n < 30) return;
+  // Mean / std / range
+  let sum=0, sum2=0, mn=Infinity, mx=-Infinity;
+  for (const x of slice){ sum+=x; sum2+=x*x; if(x<mn)mn=x; if(x>mx)mx=x; }
+  const mean = sum/n;
+  const std = Math.sqrt(Math.max(0, sum2/n - mean*mean));
+  const ptp = mx - mn;
+  // Drift
+  const q = Math.max(2, Math.floor(n/4));
+  let m1=0, m2=0;
+  for (let i=0;i<q;i++) m1+=slice[i];
+  for (let i=n-q;i<n;i++) m2+=slice[i];
+  m1/=q; m2/=q;
+  const drift = Math.abs(m2-m1);
+  // Spikes: count samples where |diff| exceeds 4*std of smoothed diff
+  let dSum=0, dSum2=0;
+  for (let i=1;i<n;i++){ const d = slice[i]-slice[i-1]; dSum+=d; dSum2+=d*d; }
+  const dMean = dSum/(n-1);
+  const dVar = Math.max(0, dSum2/(n-1) - dMean*dMean);
+  const jumpStd = Math.sqrt(dVar);
+  let spikes = 0;
+  // Spike threshold is mode-aware. Chest tolerates larger absolute jumps
+  // because the QRS itself produces big sample-to-sample steps.
+  const sp = (currentLeadMode === 'fingers') ? LEAD_PRESETS.fingers : LEAD_PRESETS.chest;
+  const spikeThr = Math.max(50, sp.sqiSpikeKMul*jumpStd, sp.sqiSpikePtpFrac*ptp);
+  for (let i=1;i<n;i++) if (Math.abs(slice[i]-slice[i-1]) > spikeThr) spikes++;
+  const spikeRate = spikes / (n-1);
+
+  const level = classifyQuality(std, drift, ptp, spikeRate, jumpStd);
+  state.sqiSamples.push({t:tEnd, level, std, drift, ptp, spikeRate, jumpStd});
+  if (state.sqiSamples.length > 600) state.sqiSamples.shift();
+  state.signalQuality = level;
+}
+function sqiAt(t){
+  if (!state.sqiSamples.length) return 'idle';
+  let lo=0, hi=state.sqiSamples.length-1;
+  while (lo < hi){ const mid=(lo+hi)>>1; if (state.sqiSamples[mid].t < t) lo=mid+1; else hi=mid; }
+  const a = state.sqiSamples[lo];
+  const b = lo>0 ? state.sqiSamples[lo-1] : a;
+  const c = Math.abs(a.t-t) <= Math.abs(b.t-t) ? a : b;
+  if (Math.abs(c.t-t) > 2) return 'idle';
+  return c.level;
+}
+
+// ============== DETECTORS ==============
+class RPeakDetector {
+  constructor(){ this.thresholdFactor=0.5; this.refractoryS=0.36; this.windowS=4.0; this.twaveAmpRatio=0.6; this.twaveWindowS=0.40; }
+  detect(times, values){
+    if (times.length < 20) return;
+    const tEnd = times[times.length-1];
+    let s = 0;
+    while (s < times.length && times[s] < tEnd - this.windowS) s++;
+    const t = times.slice(s), v = values.slice(s);
+    if (v.length < 10) return;
+    // Robust threshold: median + MAD
+    const sorted = v.slice().sort((a,b)=>a-b);
+    const median = sorted[sorted.length>>1];
+    const dev = new Array(v.length);
+    for (let i=0;i<v.length;i++) dev[i] = Math.abs(v[i] - median);
+    dev.sort((a,b)=>a-b);
+    const mad = Math.max(1, dev[dev.length>>1]);
+    // Use the 99th percentile of the window as the upper anchor for the
+    // detection threshold. R-peaks are NARROW — in a 4 s window at 128 Hz
+    // (~512 samples) the actual R-peak tip occupies only ~4% of samples.
+    // The 95th percentile lands halfway up the R, so the threshold ends up
+    // catching small inter-beat features as false peaks. The 99th percentile
+    // sits very near the actual R-peak amplitude.
+    const p99Idx = Math.min(sorted.length - 1, Math.floor(sorted.length * 0.99));
+    const robustHigh = sorted[p99Idx];
+    if (robustHigh - median < 10) return;
+    // Threshold: scale between median (factor=0) and robustHigh-margin (factor=1).
+    // We pull the upper anchor down to 70% of the 99th-percentile excursion so
+    // beats slightly shorter than the absolute tallest still get caught.
+    const upperAnchor = median + (robustHigh - median) * 0.7;
+    const thr = median + (upperAnchor - median) * this.thresholdFactor;
+    const dt = Math.max(1e-6, (t[t.length-1]-t[0])/Math.max(1,t.length-1));
+    const minD = Math.max(1, Math.round(this.refractoryS / dt));
+    const peaks = [];
+    let last = -minD;
+    for (let i=1;i<v.length-1;i++){
+      // Reject only true outlier spikes (much taller than R-peaks). 5× the
+      // 99th-percentile is well above any real R-peak but below typical
+      // motion artifacts which can be 10–50× the QRS amplitude.
+      if (v[i] - median > (robustHigh - median) * 5) continue;
+      if (v[i]>thr && v[i]>=v[i-1] && v[i]>v[i+1]){
+        if (i - last >= minD){ peaks.push(i); last = i; }
+        else if (peaks.length > 0 && v[i] > v[peaks[peaks.length-1]]){ peaks[peaks.length-1] = i; last = i; }
+      }
+    }
+    const newT = peaks.map(i => t[i]);
+    const newV = peaks.map(i => v[i]);
+    const cutoff = tEnd - this.windowS;
+    const keptT = [], keptV = [];
+    for (let i=0;i<state.rPeaksT.length;i++){
+      if (state.rPeaksT[i] < cutoff){ keptT.push(state.rPeaksT[i]); keptV.push(state.rPeaksV[i]); }
+    }
+    // ===== GLOBAL REFRACTORY PASS =====
+    // Bug fix: when a real R-peak slides out of the 4 s window, the next
+    // window starts fresh and may accept a T-wave as its first "peak", because
+    // intra-window refractory has no memory of the just-frozen kept peak.
+    // Solution: walk the entire merged list (kept ++ new) in time order and
+    // enforce the refractory + T-wave amplitude rule globally.
+    const allT = keptT.concat(newT);
+    const allV = keptV.concat(newV);
+    const refS = this.refractoryS;
+    const twS = this.twaveWindowS;
+    const twR = this.twaveAmpRatio;
+    const cleanT = [], cleanV = [];
+    for (let i=0;i<allT.length;i++){
+      const t_i = allT[i], v_i = allV[i];
+      if (cleanT.length === 0){ cleanT.push(t_i); cleanV.push(v_i); continue; }
+      const dt_prev = t_i - cleanT[cleanT.length-1];
+      const v_prev = cleanV[cleanV.length-1];
+      // Strict refractory: too close → keep the larger
+      if (dt_prev < refS){
+        if (v_i > v_prev){ cleanT[cleanT.length-1] = t_i; cleanV[cleanV.length-1] = v_i; }
+        continue;
+      }
+      // T-wave rejection: within twaveWindowS AND amplitude clearly lower
+      if (dt_prev < twS && v_i < v_prev * twR){
+        // looks like a T-wave following the previous R: reject
+        continue;
+      }
+      cleanT.push(t_i); cleanV.push(v_i);
+    }
+    state.rPeaksT = cleanT;
+    state.rPeaksV = cleanV;
+    if (state.rPeaksT.length > 4000){ state.rPeaksT = state.rPeaksT.slice(-4000); state.rPeaksV = state.rPeaksV.slice(-4000); }
+  }
+}
+class PulseFootDetector {
+  constructor(){ this.slopeThresh=0.2; this.peakLoS=0.10; this.peakHiS=0.90; this.backS=0.50; }
+  gradient(t,v){
+    const dy = new Array(v.length).fill(0);
+    if (v.length<2) return dy;
+    dy[0] = (v[1]-v[0]) / Math.max(1e-9, t[1]-t[0]);
+    for (let i=1;i<v.length-1;i++) dy[i] = (v[i+1]-v[i-1]) / Math.max(1e-9, t[i+1]-t[i-1]);
+    const n = v.length-1;
+    dy[n] = (v[n]-v[n-1]) / Math.max(1e-9, t[n]-t[n-1]);
+    return dy;
+  }
+  detect(t,v,rPeakTimes){
+    if (t.length<20 || !rPeakTimes.length){ return; }
+    const dy = this.gradient(t,v);
+    const ft = [], fv = [];
+    for (const rt of rPeakTimes){
+      const idx = [];
+      for (let i=0;i<t.length;i++) if (t[i] >= rt+this.peakLoS && t[i] <= rt+this.peakHiS) idx.push(i);
+      if (idx.length<5) continue;
+      let p = idx[0];
+      for (const i of idx) if (v[i]>v[p]) p = i;
+      const pt = t[p];
+      const idxb = [];
+      const tLo = Math.max(rt, pt - this.backS);
+      for (let i=0;i<t.length;i++) if (t[i]>=tLo && t[i]<pt) idxb.push(i);
+      if (idxb.length<5) continue;
+      let imax = idxb[0]; let mxs = -Infinity;
+      for (const i of idxb) if (dy[i]>mxs){ mxs = dy[i]; imax = i; }
+      if (!(mxs > 0)) continue;
+      const thr = this.slopeThresh * mxs;
+      let f = null;
+      for (const k of idxb){ if (t[k] >= t[imax]) break; if (dy[k] >= thr){ f = k; break; } }
+      if (f === null) continue;
+      ft.push(t[f]); fv.push(v[f]);
+    }
+    state.feetT = ft; state.feetV = fv;
+  }
+}
+class PTTCalculator {
+  constructor(){ this.minPttMs=50; this.maxPttMs=500; this.offsetMs=55; }
+  compute(rT, fT){
+    if (!rT.length || !fT.length){ return; }
+    const nT=[], nV=[];
+    for (const ft of fT){
+      let prev = null;
+      for (let i=0;i<rT.length;i++){ if (rT[i] < ft) prev = rT[i]; else break; }
+      if (prev === null) continue;
+      const ms = (ft-prev)*1000 + this.offsetMs;
+      if (ms >= this.minPttMs && ms <= this.maxPttMs){ nT.push(ft); nV.push(ms); }
+    }
+    state.patTimes = nT; state.patValues = nV;
+  }
+}
+const rpeak = new RPeakDetector();
+const foot = new PulseFootDetector();
+const ptt = new PTTCalculator();
+
+// ============== BEATS ==============
+function findClosest(arr, target){
+  if (!arr.length) return -1;
+  let lo=0, hi=arr.length-1;
+  while (lo<hi){ const mid=(lo+hi)>>1; if (arr[mid]<target) lo=mid+1; else hi=mid; }
+  if (lo>0 && Math.abs(arr[lo-1]-target) < Math.abs(arr[lo]-target)) lo = lo-1;
+  return lo;
+}
+function extractBeat(rt){
+  const ex = state.save_e_x, ey = state.save_e_y;
+  if (ex.length < BEAT_LEN) return null;
+  const ri = findClosest(ex, rt);
+  if (ri < 0) return null;
+  const s = ri - BEFORE, e = ri + AFTER;
+  if (s < 0 || e > ex.length) return null;
+  const beat = new Array(BEAT_LEN);
+  for (let i=0;i<BEAT_LEN;i++) beat[i] = ey[s+i];
+  let base = 0;
+  for (let i=0;i<10;i++) base += beat[i];
+  base /= 10;
+  for (let i=0;i<BEAT_LEN;i++) beat[i] -= base;
+  const rAbs = Math.abs(beat[BEFORE]) || 1;
+  for (let i=0;i<BEAT_LEN;i++) beat[i] /= rAbs;
+  return beat;
+}
+function updateTemplate(beat){
+  if (!state.template){ state.template = beat.slice(); state.templateCount = 1; state.twinDirty = true; return; }
+  const n = Math.min(state.templateCount+1, state.templateMaxN);
+  const a = 1/n;
+  for (let i=0;i<BEAT_LEN;i++) state.template[i] = (1-a)*state.template[i] + a*beat[i];
+  state.templateCount++;
+  state.twinDirty = true;
+}
+
+// ====== LOCAL TEMPLATE — for motion-adaptive ectopic detection ======
+// Maintains a rolling mean over the last LOCAL_TPL_N "well-formed" beats.
+// Used ONLY when motionAdaptive is on, and ONLY for ectopic classification.
+// Does not affect the global template, the HR-conditioned model, or HRV math —
+// those keep their stable baseline-derived references. Effect: a beat is only
+// flagged as morphologically abnormal if it differs from BOTH the global
+// template AND its immediate neighbors. So during sustained lead drift (where
+// every beat is similarly off-baseline) you don't get a false flood of PVCs,
+// but a single weird beat in the middle of a drift still gets caught.
+const LOCAL_TPL_N = 12;
+function pushLocalTemplate(beat){
+  state.localTemplateBeats.push(beat);
+  if (state.localTemplateBeats.length > LOCAL_TPL_N) state.localTemplateBeats.shift();
+  // Rebuild the local mean
+  const n = state.localTemplateBeats.length;
+  if (n === 0){ state.localTemplate = null; return; }
+  const tpl = new Array(BEAT_LEN).fill(0);
+  for (const b of state.localTemplateBeats) for (let i=0;i<BEAT_LEN;i++) tpl[i] += b[i];
+  for (let i=0;i<BEAT_LEN;i++) tpl[i] /= n;
+  state.localTemplate = tpl;
+}
+function localSimilarity(beat){
+  if (!state.localTemplate) return null;
+  return cosineSim(state.localTemplate, beat);
+}
+function resetLocalTemplate(){
+  state.localTemplate = null;
+  state.localTemplateBeats = [];
+}
+
+// =============================================================
+//   HR-CONDITIONED BEAT MODEL ("the twin")
+// =============================================================
+// Instead of one global average beat, maintain a family of templates indexed
+// by heart rate. As HR changes, beat morphology changes predictably (QT
+// shortens, T amplitude shifts, etc). The conditioned model captures this.
+//
+// Implementation: a fixed grid of HR centers (40, 45, ... 140 bpm). Each new
+// beat updates EVERY grid point by a Gaussian-weighted EMA — closer-in-HR
+// centers get more weight. To query the predicted beat at any HR, linear-
+// interpolate between the two bracketing centers.
+//
+// Each grid point also tracks an "effective sample count" — the sum of all
+// kernel weights it has received. This is our coverage metric: a center
+// with effective_n > 5 has enough data to predict reliably.
+
+const HR_MIN = 40;
+const HR_MAX = 140;
+const HR_STEP = 5;
+const HR_KERNEL_SIGMA = 8;     // bpm — how broadly each beat influences neighbors
+const HR_GRID = [];
+for (let h = HR_MIN; h <= HR_MAX; h += HR_STEP) HR_GRID.push(h);
+const HR_BINS = HR_GRID.length;
+
+function makeEmptyHRModel(){
+  // templates[k] is null until first beat with non-trivial weight at center k
+  const tpl = new Array(HR_BINS).fill(null);
+  const eff_n = new Float32Array(HR_BINS);   // effective sample count
+  return { templates: tpl, eff_n };
+}
+
+function gaussWeight(hr, center){
+  const d = hr - center;
+  return Math.exp(-(d*d) / (2 * HR_KERNEL_SIGMA * HR_KERNEL_SIGMA));
+}
+
+function updateHRModel(beat, hr){
+  if (!state.hrModel) state.hrModel = makeEmptyHRModel();
+  if (hr == null || !isFinite(hr) || hr < HR_MIN-10 || hr > HR_MAX+10) return;
+  const M = state.hrModel;
+  for (let k=0;k<HR_BINS;k++){
+    const w = gaussWeight(hr, HR_GRID[k]);
+    if (w < 0.05) continue;                 // skip negligible weights for speed
+    if (M.templates[k] === null){
+      M.templates[k] = beat.slice();
+      M.eff_n[k] = w;
+      continue;
+    }
+    // Weighted-EMA update. Each new beat contributes weight w; cap the
+    // effective_n at 200 so the model can still adapt to morphology drift.
+    const newN = Math.min(M.eff_n[k] + w, 200);
+    const alpha = w / newN;
+    const t = M.templates[k];
+    for (let i=0;i<BEAT_LEN;i++) t[i] = (1-alpha)*t[i] + alpha*beat[i];
+    M.eff_n[k] = newN;
+  }
+  state.twinDirty = true;
+}
+
+// Return the "predicted beat" at a given HR by linear-interpolating between
+// the two grid points that bracket it. Returns {beat, coverage} where
+// coverage is the min effective_n of the two bracketing bins (lower coverage
+// = less reliable prediction). Returns null if no nearby bin has any data.
+function predictBeatAt(hr){
+  if (!state.hrModel) return null;
+  const M = state.hrModel;
+  if (hr < HR_MIN) hr = HR_MIN;
+  if (hr > HR_MAX) hr = HR_MAX;
+  // Find bracketing indices
+  const idxF = (hr - HR_MIN) / HR_STEP;
+  let lo = Math.floor(idxF);
+  let hi = Math.ceil(idxF);
+  if (lo < 0) lo = 0;
+  if (hi >= HR_BINS) hi = HR_BINS-1;
+  if (lo > hi) lo = hi;
+  // If either bracketing bin is empty, fall back to the nearest non-empty bin
+  if (M.templates[lo] === null && M.templates[hi] === null){
+    // Search outward for a non-empty bin
+    let best = -1, bestDist = Infinity;
+    for (let k=0;k<HR_BINS;k++){
+      if (M.templates[k] !== null && M.eff_n[k] > 0.5){
+        const d = Math.abs(k - idxF);
+        if (d < bestDist){ bestDist = d; best = k; }
+      }
+    }
+    if (best < 0) return null;
+    return { beat: M.templates[best].slice(), coverage: M.eff_n[best], hrUsed: HR_GRID[best], extrapolated: true };
+  }
+  if (M.templates[lo] === null) lo = hi;
+  if (M.templates[hi] === null) hi = lo;
+  if (lo === hi){
+    return { beat: M.templates[lo].slice(), coverage: M.eff_n[lo], hrUsed: HR_GRID[lo], extrapolated: false };
+  }
+  const frac = (hr - HR_GRID[lo]) / (HR_GRID[hi] - HR_GRID[lo]);
+  const out = new Array(BEAT_LEN);
+  const A = M.templates[lo], B = M.templates[hi];
+  for (let i=0;i<BEAT_LEN;i++) out[i] = A[i]*(1-frac) + B[i]*frac;
+  const coverage = Math.min(M.eff_n[lo], M.eff_n[hi]);
+  return { beat: out, coverage, hrUsed: hr, extrapolated: false };
+}
+
+// Cosine similarity between two beat vectors (extracted to reuse for both
+// the legacy template and the HR-conditioned one).
+function cosineSim(a, b){
+  let m1=0, m2=0;
+  for (let i=0;i<BEAT_LEN;i++){ m1+=a[i]; m2+=b[i]; }
+  m1/=BEAT_LEN; m2/=BEAT_LEN;
+  let num=0, d1=0, d2=0;
+  for (let i=0;i<BEAT_LEN;i++){
+    const x = a[i]-m1, y = b[i]-m2;
+    num += x*y; d1 += x*x; d2 += y*y;
+  }
+  const den = Math.sqrt(d1*d2);
+  return den > 0 ? num/den : 0;
+}
+
+function beatSimilarity(beat){
+  if (!state.template) return null;
+  return cosineSim(state.template, beat);
+}
+
+// HR-conditioned similarity: score against the predicted beat at the given
+// HR. Falls back to the global template when coverage is insufficient.
+// Returns { sim, conditional } — `conditional` is true when the score came
+// from the HR-conditioned model, false when it fell back to global.
+function beatSimilarityHR(beat, hr){
+  if (hr == null || !isFinite(hr)){
+    const s = beatSimilarity(beat);
+    return s === null ? null : { sim: s, conditional: false };
+  }
+  const pred = predictBeatAt(hr);
+  // Need at least eff_n > 3 for the conditioned score to be trustworthy
+  if (pred && pred.coverage > 3 && !pred.extrapolated){
+    return { sim: cosineSim(pred.beat, beat), conditional: true };
+  }
+  const s = beatSimilarity(beat);
+  return s === null ? null : { sim: s, conditional: false };
+}
+// =============================================================
+//   PER-BEAT ANOMALY SCORE — single 0-1 number per beat
+// =============================================================
+// Combines four signals, each mapped to 0..1 where 1 = highly anomalous:
+//   1. globalSim residual: how unlike the baseline template
+//   2. hrCondSim residual: how unlike the HR-conditioned prediction
+//   3. localSim residual: how unlike the immediate-context template
+//   4. RR z-score: how out-of-place the timing is vs recent rhythm
+// Weights favor the HR-conditioned and local scores when available because
+// they are context-aware. Falls back to fewer signals when models are immature.
+// =============================================================
+//   TWIN MISMATCH (F1) + T-WAVE RESIDUAL (CC-new1) + FIT MAP (CC-new4)
+// =============================================================
+// Per-beat residual = predicted - actual, sample-by-sample.
+// Three derived metrics share this computation:
+//   * Total residual energy → "live mismatch" 0..1 (F1)
+//   * Residual energy in the T-wave window → cognitive-load fingerprint (CC-new1)
+//   * (HR, residual_energy) tuples → state-dependent twin-fit heatmap (CC-new4)
+//
+// Sample index reminders (ECG_FS=128, BEAT_LEN=77, BEFORE=26):
+//   R is at sample BEFORE (~time 0)
+//   QRS:  BEFORE-6 to BEFORE+6   (-50 to +50 ms)
+//   T-wave window: BEFORE+10 to BEFORE+30 (~80-230 ms post-R)
+const TWAVE_START = BEFORE + 10;        // ~80 ms past R
+const TWAVE_END   = Math.min(BEAT_LEN, BEFORE + 30);  // ~230 ms past R
+
+function computeBeatResidual(beat, hr){
+  if (!state.hrModel || hr == null) return null;
+  const pred = predictBeatAt(hr);
+  if (!pred || pred.coverage < 3 || pred.extrapolated) return null;
+  const p = pred.beat;
+  // Residual energy normalized so a "perfect match" → 0, a totally
+  // unrelated beat → ~1. We use mean squared diff; since beats are
+  // R-amplitude-normalized to ±1, the natural scale is roughly 1.
+  let totEnergy = 0, twaveEnergy = 0;
+  for (let i=0;i<BEAT_LEN;i++){
+    const d = beat[i] - p[i];
+    const sq = d*d;
+    totEnergy += sq;
+    if (i >= TWAVE_START && i < TWAVE_END) twaveEnergy += sq;
+  }
+  totEnergy /= BEAT_LEN;
+  twaveEnergy /= (TWAVE_END - TWAVE_START);
+  // sqrt to get RMS-like scale, then clamp to [0, 1] — beyond 1 is
+  // "completely different signal" territory which we don't need to distinguish.
+  return {
+    total: Math.min(1, Math.sqrt(totEnergy)),
+    twave: Math.min(1, Math.sqrt(twaveEnergy)),
+    pred: pred.beat,
+    coverage: pred.coverage,
+  };
+}
+
+// Rolling buffers for time-series displays
+function pushFitMap(hr, residTotal, t){
+  if (!state.fitMap) state.fitMap = [];
+  state.fitMap.push({hr, r: residTotal, t});
+  if (state.fitMap.length > 600) state.fitMap.shift();
+}
+function pushTwaveResidTrace(t, twave){
+  if (!state.twaveTrace) state.twaveTrace = [];
+  state.twaveTrace.push({t, v: twave});
+  if (state.twaveTrace.length > 600) state.twaveTrace.shift();
+}
+function pushMismatchTrace(t, total){
+  if (!state.mismatchTrace) state.mismatchTrace = [];
+  state.mismatchTrace.push({t, v: total});
+  if (state.mismatchTrace.length > 600) state.mismatchTrace.shift();
+}
+
+// =============================================================
+//   F5 — DRIFT DETECTOR
+// =============================================================
+// Track the rolling median of global similarity. If it stays below
+// SIM_THRESH for SUSTAIN_S seconds, the locked baseline likely no longer
+// represents your "normal" — recommend recalibration.
+const DRIFT_SIM_THRESH = 0.85;
+const DRIFT_SUSTAIN_S = 60;
+const DRIFT_WINDOW_BEATS = 80;
+
+function updateDriftStatus(){
+  const recent = state.beats.slice(-DRIFT_WINDOW_BEATS);
+  if (recent.length < 30 || !state.template){
+    state.driftStatus = {level:'ok', age:0, median:null};
+    return;
+  }
+  // Use cosine sim against global template for ALL beats — independent
+  // signal from F1 mismatch. F1 says "your beat doesn't match the
+  // HR-prediction"; F5 says "your beats keep not matching baseline at all".
+  const sims = recent.map(b => state.template ? cosineSim(state.template, b.v) : 0);
+  sims.sort((a,b)=>a-b);
+  const med = sims[sims.length>>1];
+  const tNow = state.e_x.length ? state.e_x[state.e_x.length-1] : 0;
+  // Track when the median first dropped below threshold
+  if (med < DRIFT_SIM_THRESH){
+    if (state.driftStatus.belowSince == null) state.driftStatus.belowSince = tNow;
+    const age = tNow - state.driftStatus.belowSince;
+    state.driftStatus.median = med;
+    state.driftStatus.age = age;
+    state.driftStatus.level = (age > DRIFT_SUSTAIN_S) ? 'stale'
+                            : (age > DRIFT_SUSTAIN_S/2) ? 'drifting'
+                            : 'ok';
+  } else {
+    state.driftStatus.belowSince = null;
+    state.driftStatus.age = 0;
+    state.driftStatus.median = med;
+    state.driftStatus.level = 'ok';
+  }
+}
+
+// =============================================================
+//   CC-new3 — STRESS RECOVERY TIME
+// =============================================================
+// State machine on HR trend. Detects HR rises above baseline+20% and
+// measures how long until HR returns to within baseline+5%. The shape
+// of that curve is informative about autonomic flexibility.
+const STRESS_RISE_PCT = 0.20;
+const STRESS_RECOVER_PCT = 0.05;
+
+function updateRecoveryDetector(){
+  if (!state.baseline || !state.baseline.hr) return;
+  const baseHR = state.baseline.hr;
+  const riseHR = baseHR * (1 + STRESS_RISE_PCT);
+  const calmHR = baseHR * (1 + STRESS_RECOVER_PCT);
+  const lastBeat = state.beats[state.beats.length-1];
+  if (!lastBeat || !lastBeat.hr) return;
+  const tNow = lastBeat.t, hrNow = lastBeat.hr;
+  if (!state.recoveryDetector) state.recoveryDetector = {phase:'calm', startedAt:null, peakHR:null};
+  const det = state.recoveryDetector;
+  if (det.phase === 'calm'){
+    if (hrNow > riseHR){ det.phase = 'elevated'; det.startedAt = tNow; det.peakHR = hrNow; }
+  } else if (det.phase === 'elevated'){
+    if (hrNow > det.peakHR) det.peakHR = hrNow;
+    if (hrNow < calmHR){
+      const dur = tNow - det.startedAt;
+      if (dur > 5){
+        state.recoveryEvents.push({tStart: det.startedAt, tEnd: tNow, dur, peakHR: det.peakHR});
+        if (state.recoveryEvents.length > 50) state.recoveryEvents.shift();
+      }
+      det.phase = 'calm'; det.startedAt = null; det.peakHR = null;
+    }
+  }
+}
+
+function computeAnomalyScore(beat, hr, prevRR, sim){
+  // sim is already cosineSim against either HR-conditioned or global template
+  // (returned by beatSimilarityHR upstream). We re-derive the components here
+  // because we want each on its own to add nuance.
+  const parts = [];
+  const weights = [];
+
+  // Global template residual
+  if (state.template){
+    const gs = cosineSim(state.template, beat);
+    parts.push(Math.max(0, Math.min(1, (1 - gs) * 2)));
+    weights.push(1.0);
+  }
+  // HR-conditioned residual
+  if (state.hrModel && hr != null){
+    const pred = predictBeatAt(hr);
+    if (pred && pred.coverage > 3 && !pred.extrapolated){
+      const cs = cosineSim(pred.beat, beat);
+      parts.push(Math.max(0, Math.min(1, (1 - cs) * 2)));
+      weights.push(1.5);   // HR-conditioned is more reliable than flat global
+    }
+  }
+  // Local template residual (motion-adaptive)
+  if (state.localTemplate){
+    const ls = cosineSim(state.localTemplate, beat);
+    parts.push(Math.max(0, Math.min(1, (1 - ls) * 2)));
+    weights.push(1.2);
+  }
+  // RR z-score: compare prevRR to mean and SD of recent RRs
+  if (prevRR !== null){
+    const recent = state.beats.slice(-12).map(b => b.rr).filter(x => x);
+    if (recent.length >= 4){
+      const mean = recent.reduce((a,b)=>a+b,0)/recent.length;
+      const v = recent.reduce((a,b)=>a+(b-mean)*(b-mean),0)/recent.length;
+      const sd = Math.max(20, Math.sqrt(v));   // floor SD at 20ms so tight-rhythm windows don't false-trigger
+      const z = Math.abs(prevRR - mean) / sd;
+      parts.push(Math.max(0, Math.min(1, z / 3)));   // |z|>3 caps to 1
+      weights.push(0.8);
+    }
+  }
+  if (!parts.length) return null;
+  let num = 0, den = 0;
+  for (let i=0;i<parts.length;i++){ num += parts[i]*weights[i]; den += weights[i]; }
+  return num / den;
+}
+
+function classifyBeat(rt, prevRR, sim, beat){
+  const morphCut = Number(els.morphCutoff.value);
+  const premCut = Number(els.prematureCutoff.value);
+  const recent = state.beats.slice(-8).map(b => b.rr).filter(x => x);
+  const meanRR = recent.length ? recent.reduce((a,b)=>a+b,0)/recent.length : null;
+  const isPrem = (meanRR !== null && prevRR !== null && prevRR < meanRR*premCut);
+  // Morphology check: in motion-adaptive mode, use the LOCAL template (mean
+  // of last 12 well-formed beats) as the reference instead of the global
+  // template. A beat is "abnormal" only when it differs from BOTH references.
+  // This stops the false flood of PVCs/atypicals during sustained lead drift
+  // (e.g. driving, holding a baby) while still catching genuine isolated
+  // ectopic beats whose morphology stands out from their immediate neighbors.
+  let isAbn;
+  if (state.motionAdaptive && beat){
+    const localSim = localSimilarity(beat);
+    if (localSim !== null){
+      // Use a slightly looser cutoff for local since recent beats may be
+      // somewhat varied by the same motion. The 0.05 relaxation is small but
+      // matters when global sim is borderline.
+      const localCut = Math.max(0.5, morphCut - 0.05);
+      isAbn = (sim !== null && sim < morphCut) && (localSim < localCut);
+    } else {
+      isAbn = (sim !== null && sim < morphCut);
+    }
+  } else {
+    isAbn = (sim !== null && sim < morphCut);
+  }
+  if (sim === null) return 'unknown';
+  if (isPrem && isAbn) return 'pvc';
+  if (isPrem) return 'pac';
+  if (isAbn) return 'abnormal';
+  return 'normal';
+}
+function processNewBeats(){
+  const reject = els.sqiReject.checked;
+  for (let i=0;i<state.rPeaksT.length;i++){
+    const rt = state.rPeaksT[i];
+    if (state.processedBeatTimes.has(rt)) continue;
+    // Reject beats only when the signal is genuinely poor (lead off / huge
+    // motion). Marginal SQI is allowed through — many normal chest-lead
+    // signals get classified as marginal due to high amplitude or modest
+    // baseline drift, and refusing those leaves us with nothing to learn from.
+    // The post-calibration outlier rejection drops the worst 15% anyway.
+    if (reject){
+      const q = sqiAt(rt);
+      if (q === 'poor'){ state.processedBeatTimes.add(rt); continue; }
+    }
+    const beat = extractBeat(rt);
+    if (!beat) continue;
+
+    // (Removed: outside-QRS amplitude check. It assumed R-peaks dominate the
+    // entire beat window, which is true for finger leads but not for chest
+    // leads where S-waves and T-waves can be physiologically large. The
+    // morphology similarity score handles real artifacts naturally — bad
+    // beats simply get a low sim score and won't update the template.)
+
+    let rr = null;
+    if (i > 0) rr = (rt - state.rPeaksT[i-1])*1000;
+    const hr = rr ? 60000/rr : null;
+    // Score against the HR-conditioned model when we have enough coverage
+    // there; otherwise fall back to the global template. The score returned
+    // is a single number 0..1 (cosine similarity), with a flag indicating
+    // which model produced it.
+    const simResult = beatSimilarityHR(beat, hr);
+    const sim = simResult ? simResult.sim : null;
+    const simConditional = simResult ? simResult.conditional : false;
+    const cls = classifyBeat(rt, rr, sim, beat);
+    const anomaly = computeAnomalyScore(beat, hr, rr, sim);
+    const resid = computeBeatResidual(beat, hr);
+    if (resid){
+      pushMismatchTrace(rt, resid.total);
+      pushTwaveResidTrace(rt, resid.twave);
+      pushFitMap(hr, resid.total, rt);
+    }
+    const rec = {t:rt, v:beat, rr, hr, cls, sim, simConditional, anomaly,
+                 mismatch: resid ? resid.total : null,
+                 twaveResid: resid ? resid.twave : null};
+    // Acceptance for template + HR model. Same logic as before for the
+    // global template; the HR model gets every accepted beat, weighted by
+    // proximity to each grid point.
+    let accept;
+    if (state.baselineMode){
+      if (state.templateCount < 5) accept = (rr !== null && rr > 400 && rr < 1500);
+      else accept = (sim !== null && sim > 0.60 && rr !== null && rr > 400 && rr < 1500);
+    } else {
+      accept = (cls === 'normal' && rr !== null && rr > 400 && rr < 1500);
+    }
+    if (accept){
+      updateTemplate(beat);
+      if (hr != null) updateHRModel(beat, hr);
+    }
+    // Local template gets fed by any beat with reasonable RR and at least
+    // moderate similarity to the global template. We are looser than `accept`
+    // here because the local template needs to track current morphology
+    // INCLUDING drifted ones — that's the whole point — but we still gate on
+    // RR plausibility so genuinely broken detections don't enter.
+    if (state.motionAdaptive && rr !== null && rr > 400 && rr < 1500 && sim !== null && sim > 0.5){
+      pushLocalTemplate(beat);
+    }
+    state.beats.push(rec);
+    state.classCounts[cls] = (state.classCounts[cls]||0) + 1;
+    if (state.beats.length > state.maxBeats) state.beats.shift();
+    state.processedBeatTimes.add(rt);
+  }
+  if (state.processedBeatTimes.size > 5000){
+    const tEnd = state.e_x.length ? state.e_x[state.e_x.length-1] : 0;
+    const drop = [];
+    for (const t of state.processedBeatTimes) if (t < tEnd-600) drop.push(t);
+    for (const t of drop) state.processedBeatTimes.delete(t);
+  }
+}
+function recomputeAllBeatsAgainstTemplate(){
+  if (!state.template) return;
+  state.classCounts = {normal:0,pvc:0,pac:0,abnormal:0,unknown:0};
+  const old = state.beats; state.beats = [];
+  for (const b of old){
+    const simResult = beatSimilarityHR(b.v, b.hr);
+    const sim = simResult ? simResult.sim : null;
+    const simConditional = simResult ? simResult.conditional : false;
+    const cls = classifyBeat(b.t, b.rr, sim, b.v);
+    const anomaly = computeAnomalyScore(b.v, b.hr, b.rr, sim);
+    state.beats.push({...b, sim, simConditional, cls, anomaly});
+    state.classCounts[cls] = (state.classCounts[cls]||0) + 1;
+  }
+}
+
+// ============== HRV TIME ==============
+function filterArtifactRR(rr){
+  const out = [];
+  for (let i=0;i<rr.length;i++){
+    const w = rr.slice(Math.max(0,i-4), Math.min(rr.length,i+5));
+    const s = w.slice().sort((a,b)=>a-b);
+    const med = s[Math.floor(s.length/2)];
+    if (rr[i] > 0.7*med && rr[i] < 1.3*med && rr[i] > 300 && rr[i] < 2000) out.push(rr[i]);
+  }
+  return out;
+}
+function computeHRVTime(rrSeries){
+  if (rrSeries.length < 5) return null;
+  const nn = filterArtifactRR(rrSeries);
+  if (nn.length < 5) return null;
+  const mean = nn.reduce((a,b)=>a+b,0)/nn.length;
+  let v = 0;
+  for (const x of nn) v += (x-mean)*(x-mean);
+  const sdnn = Math.sqrt(v/nn.length);
+  let ssq = 0, nn50 = 0;
+  for (let i=1;i<nn.length;i++){
+    const d = nn[i]-nn[i-1];
+    ssq += d*d;
+    if (Math.abs(d) > 50) nn50++;
+  }
+  const rmssd = Math.sqrt(ssq/Math.max(1,nn.length-1));
+  const pnn50 = (nn50/Math.max(1,nn.length-1))*100;
+  const sd1 = rmssd/Math.sqrt(2);
+  const sd2 = Math.sqrt(Math.max(0, 2*sdnn*sdnn - sd1*sd1));
+  return {meanRR:mean, hr:60000/mean, sdnn, rmssd, pnn50, sd1, sd2, n:nn.length};
+}
+
+// ============== FFT + HRV FREQ ==============
+function fftInPlace(re, im){
+  const n = re.length;
+  if (n <= 1) return;
+  let j = 0;
+  for (let i=1;i<n;i++){
+    let bit = n >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j){ [re[i],re[j]]=[re[j],re[i]]; [im[i],im[j]]=[im[j],im[i]]; }
+  }
+  for (let len=2; len<=n; len<<=1){
+    const ang = -2*Math.PI/len;
+    const wlre = Math.cos(ang), wlim = Math.sin(ang);
+    for (let i=0;i<n;i+=len){
+      let wre=1, wim=0;
+      for (let k=0;k<len/2;k++){
+        const ur = re[i+k], ui = im[i+k];
+        const vr = re[i+k+len/2]*wre - im[i+k+len/2]*wim;
+        const vi = re[i+k+len/2]*wim + im[i+k+len/2]*wre;
+        re[i+k] = ur+vr; im[i+k] = ui+vi;
+        re[i+k+len/2] = ur-vr; im[i+k+len/2] = ui-vi;
+        const nr = wre*wlre - wim*wlim;
+        const ni = wre*wlim + wim*wlre;
+        wre = nr; wim = ni;
+      }
+    }
+  }
+}
+function nextPow2(n){ let p=1; while (p<n) p<<=1; return p; }
+function resampleRR(rT){
+  if (rT.length < 6) return null;
+  const ts=[], rrs=[];
+  for (let i=1;i<rT.length;i++){
+    const rr = (rT[i]-rT[i-1])*1000;
+    if (rr>300 && rr<2000){ ts.push(rT[i]); rrs.push(rr); }
+  }
+  if (rrs.length < 6) return null;
+  const fs = 4;
+  const t0 = ts[0], t1 = ts[ts.length-1];
+  const N = Math.floor((t1-t0)*fs);
+  if (N < 32) return null;
+  const arr = new Array(N);
+  let j = 0;
+  for (let i=0;i<N;i++){
+    const t = t0 + i/fs;
+    while (j < ts.length-1 && ts[j+1] < t) j++;
+    let v;
+    if (j >= ts.length-1) v = rrs[rrs.length-1];
+    else {
+      const a = ts[j], b = ts[j+1], va = rrs[j], vb = rrs[j+1];
+      const f = (t-a) / Math.max(1e-9, b-a);
+      v = va + (vb-va)*f;
+    }
+    arr[i] = v;
+  }
+  return {fs, t0, t1, data:arr};
+}
+function computeHRVFreq(rT){
+  if (rT.length < 60) return null;
+  if (rT[rT.length-1] - rT[0] < 90) return null;
+  const rs = resampleRR(rT);
+  if (!rs || rs.data.length < 64) return null;
+  const N = rs.data.length;
+  const Np = nextPow2(N);
+  const re = new Array(Np).fill(0);
+  const im = new Array(Np).fill(0);
+  let m=0; for (let i=0;i<N;i++) m += rs.data[i]; m /= N;
+  for (let i=0;i<N;i++){
+    const w = 0.5*(1 - Math.cos(2*Math.PI*i/(N-1)));
+    re[i] = (rs.data[i] - m) * w;
+  }
+  fftInPlace(re, im);
+  let lf=0, hf=0;
+  const half = Np/2;
+  for (let i=1;i<half;i++){
+    const f = i*rs.fs/Np;
+    const p = re[i]*re[i] + im[i]*im[i];
+    if (f >= 0.04 && f < 0.15) lf += p;
+    else if (f >= 0.15 && f < 0.4) hf += p;
+  }
+  return {lf, hf, lfHf: hf > 0 ? lf/hf : 0};
+}
+function computeSpectrogramColumn(){
+  if (!state.rPeaksT.length) return null;
+  const tEnd = state.rPeaksT[state.rPeaksT.length-1];
+  const recent = state.rPeaksT.filter(t => t >= tEnd-130);
+  const rs = resampleRR(recent);
+  if (!rs || rs.data.length < 64) return null;
+  const N = Math.min(rs.data.length, 480);
+  const arr = rs.data.slice(rs.data.length - N);
+  const Np = nextPow2(N);
+  const re = new Array(Np).fill(0);
+  const im = new Array(Np).fill(0);
+  let m=0; for (let i=0;i<N;i++) m += arr[i]; m /= N;
+  for (let i=0;i<N;i++){
+    const w = 0.5*(1 - Math.cos(2*Math.PI*i/(N-1)));
+    re[i] = (arr[i] - m) * w;
+  }
+  fftInPlace(re, im);
+  const fbins = state.spectrogram.freqBins;
+  const fmax = state.spectrogram.fmax;
+  const mags = new Float32Array(fbins);
+  for (let k=0;k<fbins;k++){
+    const f = (k + 0.5) * fmax / fbins;
+    const idx = Math.round(f * Np / rs.fs);
+    if (idx > 0 && idx < Np/2) mags[k] = Math.sqrt(re[idx]*re[idx] + im[idx]*im[idx]);
+  }
+  // log compression
+  for (let k=0;k<fbins;k++) mags[k] = Math.log1p(mags[k]);
+  return {t: rs.t1, mags};
+}
+
+// ============== TWIN ==============
+function relDiff(now, base){ if (base==null||base===0||now==null) return 0; return (now-base)/base; }
+function computeDivergence(){
+  if (!state.baseline) return null;
+  const tNow = state.e_x.length ? state.e_x[state.e_x.length-1] : 0;
+  if (tNow - state.baseline.lockedAt < 15) return 0;
+  const b = state.baseline, h = state.hrv;
+  const parts = [];
+
+  // HR: percentage change with a 5 bpm floor so we don't trigger on tiny
+  // deltas when baseline HR happens to be very low (e.g. resting at 50 bpm).
+  if (h.hr != null && b.hr != null){
+    const absDelta = Math.abs(h.hr - b.hr);
+    const scale = Math.max(b.hr * 0.5, 5);   // 50% of baseline OR 5 bpm
+    parts.push(Math.min(1, absDelta / scale));
+  }
+
+  // RMSSD: only DECREASES count. Use ABSOLUTE delta with a floor — this
+  // prevents false alerts when baseline RMSSD is unusually small (e.g. the
+  // user held their breath during calibration). A jump from 25→90 ms RMSSD
+  // is not divergence, just normal RSA returning. We require an absolute
+  // drop of at least max(20 ms, 60% of baseline) to count as full divergence.
+  if (h.rmssd != null && b.rmssd != null){
+    const drop = b.rmssd - h.rmssd;       // positive = RMSSD decreased
+    if (drop > 0){
+      const scale = Math.max(b.rmssd * 0.6, 20);
+      parts.push(Math.min(1, drop / scale));
+    } else parts.push(0);
+  }
+
+  // SDNN: same logic — only decreases count, with absolute floor.
+  if (h.sdnn != null && b.sdnn != null){
+    const drop = b.sdnn - h.sdnn;
+    if (drop > 0){
+      const scale = Math.max(b.sdnn * 0.6, 25);
+      parts.push(Math.min(1, drop / scale));
+    } else parts.push(0);
+  }
+
+  // Morphology: bidirectional (any beat shape change is informative)
+  const recent = state.beats.slice(-30);
+  const sims = recent.map(x => x.sim).filter(x => x != null);
+  if (sims.length >= 5){
+    const ms = sims.reduce((a,b)=>a+b,0)/sims.length;
+    parts.push(Math.min(1, Math.max(0, (1-ms)*2)));
+  }
+
+  // Ectopic burden over last 60 beats
+  const last = state.beats.slice(-60);
+  if (last.length >= 20){
+    const ect = last.filter(b => b.cls === 'pvc' || b.cls === 'pac' || b.cls === 'abnormal').length;
+    parts.push(Math.min(1, ect/last.length/0.2));
+  }
+  if (!parts.length) return null;
+  const score = parts.reduce((a,b)=>a+b,0)/parts.length;
+  return Math.round(score*100);
+}
+function inferState(){
+  if (!state.baseline || state.hrv.hr == null) return 'idle';
+  if (state.signalQuality === 'poor') return 'idle';
+  const tNow = state.e_x.length ? state.e_x[state.e_x.length-1] : 0;
+  if (tNow - state.baseline.lockedAt < 15) return 'resting';   // warmup matches divergence
+  const h = state.hrv, b = state.baseline;
+  const hrRel = relDiff(h.hr, b.hr);
+  const rmssdRel = h.rmssd != null && b.rmssd ? relDiff(h.rmssd, b.rmssd) : 0;
+  const last60 = state.beats.slice(-60);
+  const ectRate = last60.length ? last60.filter(b => b.cls !== 'normal' && b.cls !== 'unknown').length/last60.length : 0;
+  if (ectRate > 0.15) return 'alert';
+  if (hrRel > 0.3 || ectRate > 0.05) return 'warn';     // only HR INCREASE counts as warn
+  if (hrRel > 0.15) return 'active';
+  if (rmssdRel < -0.4 && hrRel > 0.05) return 'mild';
+  return 'resting';
+}
+const STATE_LABEL = {idle:'Awaiting signal',resting:'Resting · in range',active:'Active / elevated HR',mild:'Mildly stressed',warn:'Watch · deviation detected',alert:'Alert · significant divergence'};
+function stateLabel(s){ return STATE_LABEL[s] || s; }
+function orbClass(s){ if (s==='idle') return 'idle'; if (s==='alert') return 'alert'; if (s==='warn'||s==='mild') return 'warn'; return ''; }
+function logStateChange(){
+  const tNow = state.e_x.length ? state.e_x[state.e_x.length-1] : 0;
+  const last = state.stateLog[state.stateLog.length-1];
+  if (!last || last.state !== state.twinState) state.stateLog.push({t:tNow, state:state.twinState});
+}
+
+// ============== BLE ==============
+const KEY = 'ble_last_device_name';
+function isAllowedName(n){ const x=String(n||'').trim().toLowerCase(); return x.startsWith('feather')||x.startsWith('anna'); }
+function getLast(){ try{return localStorage.getItem(KEY)||'';}catch{return '';} }
+function saveLast(n){ if (!n||!isAllowedName(n)) return; try{localStorage.setItem(KEY,n);}catch{} refreshReconnect(); }
+function refreshReconnect(){ const n = getLast(); els.reconnectBtn.disabled = !n || state.isConnected; els.reconnectBtn.textContent = n ? `Reconnect ${n}` : 'Reconnect Last'; }
+function bleOpts(svc){ return {filters:[{namePrefix:'feather'},{namePrefix:'Feather'},{namePrefix:'FEATHER'},{namePrefix:'anna'},{namePrefix:'Anna'},{namePrefix:'ANNA'}], optionalServices:[svc]}; }
+function setStatus(t,k='warn'){ els.status.textContent=t; els.status.className=`status ${k}`; }
+
+// =============================================================
+//   BOOKMARKS
+// =============================================================
+function addBookmark(){
+  if (!state.isConnected && !state.beats.length){
+    setStatus('Connect first to add bookmarks.', 'warn');
+    return;
+  }
+  const t = state.e_x.length ? state.e_x[state.e_x.length-1] : 0;
+  const label = prompt('Bookmark label (optional):', '') || '';
+  // Snapshot current twin readings — useful for the F4 reality-check
+  const snap = {
+    hr: state.hrv.hr, rmssd: state.hrv.rmssd, sdnn: state.hrv.sdnn,
+    div: state.twinDivergence,
+    anomaly: (() => {
+      const r = state.beats.slice(-10).map(b => b.anomaly).filter(x => x != null);
+      return r.length ? r.reduce((a,b)=>a+b,0)/r.length : null;
+    })(),
+    mismatch: (() => {
+      const r = state.mismatchTrace.slice(-10);
+      return r.length ? r.reduce((a,b)=>a+b.v,0)/r.length : null;
+    })(),
+  };
+  state.bookmarks.push({ t, label, color: '#fbbf24', snap });
+  setStatus(`🔖 Bookmark added at ${t.toFixed(1)}s${label ? ': '+label : ''}`, 'ok');
+}
+
+// =============================================================
+//   TWIN PROFILE MENU RENDERING
+// =============================================================
+function renderTwinMenu(){
+  els.twinMenuCurrentName.textContent = state.currentTwinName + (state.twinDirty ? ' •' : '');
+  const list = listTwinProfiles();
+  if (list.length === 0){
+    els.twinProfileList.innerHTML = '<em class="twin-menu-empty">none yet</em>';
+    return;
+  }
+  els.twinProfileList.innerHTML = '';
+  for (const p of list){
+    const row = document.createElement('div');
+    row.className = 'row';
+    const name = document.createElement('span');
+    name.className = 'name';
+    const date = p.createdAt ? new Date(p.createdAt).toLocaleString() : '';
+    name.title = `Created ${date}`;
+    name.textContent = p.name + (p.name === state.currentTwinName ? '  ✓' : '');
+    name.addEventListener('click', () => {
+      if (loadTwinFromLocalStorage(p.name)){
+        state.currentTwinName = p.name;
+        state.twinDirty = false;
+        setStatus(`Loaded twin profile "${p.name}".`, 'ok');
+        els.twinMenuCurrentName.textContent = p.name;
+        els.twinMenuDropdown.style.display = 'none';
+      }
+    });
+    const meta = document.createElement('span');
+    meta.className = 'meta';
+    meta.textContent = p.leadMode || '';
+    const del = document.createElement('button');
+    del.className = 'del';
+    del.textContent = '×';
+    del.title = 'Delete this profile';
+    del.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm(`Delete twin profile "${p.name}"?`)){
+        deleteTwinProfile(p.name);
+        renderTwinMenu();
+      }
+    });
+    row.appendChild(name);
+    row.appendChild(meta);
+    row.appendChild(del);
+    els.twinProfileList.appendChild(row);
+  }
+}
+function setConnUI(on, name='—'){ state.isConnected=on; els.connectionValue.textContent = on?'Connected':'Disconnected'; els.deviceValue.textContent = name||'—'; els.connectBtn.disabled=on; els.disconnectBtn.disabled=!on; refreshReconnect(); }
+function appendLim(xa, ya, x, y, mx=state.maxBuffer){ xa.push(x); ya.push(y); if (xa.length>mx){ xa.splice(0,xa.length-mx); ya.splice(0,ya.length-mx); } }
+function concat(a,b){ const o=new Uint8Array(a.length+b.length); o.set(a,0); o.set(b,a.length); return o; }
+function readTribo(f){
+  const dv = new DataView(f.buffer, f.byteOffset, f.byteLength);
+  const t0 = dv.getFloat32(0, true);
+  for (let i=0;i<10;i++){
+    const v = dv.getFloat32(4+i*4, true);
+    const t = t0 + i*0.008;
+    appendLim(state.t_x, state.t_y, t, v);
+    state.save_t_x.push(t); state.save_t_y.push(v);
+    if (state.save_t_x.length > state.maxSave){ state.save_t_x.splice(0, state.save_t_x.length-state.maxSave); state.save_t_y.splice(0, state.save_t_y.length-state.maxSave); }
+  }
+}
+function readEcg(f){
+  const dv = new DataView(f.buffer, f.byteOffset, f.byteLength);
+  const t0 = dv.getFloat32(0, true);
+  for (let i=0;i<10;i++){
+    let raw = dv.getInt32(4+i*4, true);
+    if (els.invertEcg.checked) raw = -raw;
+    const filt = filterSample(raw);
+    const t = t0 + i*(1/ECG_FS);
+    if (state.sessionStart === null) state.sessionStart = t;
+    appendLim(state.e_x, state.e_y, t, filt);
+    state.save_e_x.push(t); state.save_e_y.push(filt); state.save_e_y_raw.push(raw);
+    if (state.save_e_x.length > state.maxSave){
+      state.save_e_x.splice(0, state.save_e_x.length-state.maxSave);
+      state.save_e_y.splice(0, state.save_e_y.length-state.maxSave);
+      state.save_e_y_raw.splice(0, state.save_e_y_raw.length-state.maxSave);
+    }
+  }
+}
+function onTribo(e){
+  const inc = new Uint8Array(e.target.value.buffer.slice(0));
+  state.tRxBuf = concat(state.tRxBuf, inc);
+  while (state.tRxBuf.length >= 44){ const fr = state.tRxBuf.slice(0,44); state.tRxBuf = state.tRxBuf.slice(44); readTribo(fr); }
+}
+function onEcg(e){
+  const inc = new Uint8Array(e.target.value.buffer.slice(0));
+  state.eRxBuf = concat(state.eRxBuf, inc);
+  while (state.eRxBuf.length >= 44){ const fr = state.eRxBuf.slice(0,44); state.eRxBuf = state.eRxBuf.slice(44); readEcg(fr); }
+}
+async function connectTo(dev){
+  if (!dev) throw new Error('No BLE device selected.');
+  if (!isAllowedName(dev.name)) throw new Error(`Device "${dev.name||'Unnamed'}" is not allowed.`);
+  const svc = els.serviceUuid.value.trim();
+  const tu = els.triboUuid.value.trim();
+  const eu = els.ecgUuid.value.trim();
+  if (state.device && state.device !== dev){ try{ state.device.removeEventListener('gattserverdisconnected', onDisc); }catch{} }
+  state.device = dev;
+  state.device.removeEventListener('gattserverdisconnected', onDisc);
+  state.device.addEventListener('gattserverdisconnected', onDisc);
+  setStatus(`Connecting to ${dev.name||'BLE device'}...`, 'warn');
+
+  // Retry the GATT handshake. Web Bluetooth on Chrome can sporadically fail
+  // with "GATT Server is disconnected. Cannot retrieve services" right after
+  // gatt.connect() resolves — typically because the connection drops in the
+  // small gap before the OS finishes service discovery, or because a previous
+  // session left a stale GATT cache. Retries with brief delays clear this.
+  let s = null;
+  let lastErr = null;
+  for (let attempt = 1; attempt <= 4; attempt++){
+    try {
+      // Make sure we're actually connected (no-op if already)
+      if (!dev.gatt.connected){
+        state.server = await dev.gatt.connect();
+      } else {
+        state.server = dev.gatt;
+      }
+      // Brief stabilization pause — gives the OS time to finish service
+      // discovery and prevents the race that triggers the "Cannot retrieve
+      // services" error. 250ms is enough on every device I've tested.
+      await new Promise(r => setTimeout(r, 250));
+      // Verify we're still connected before service discovery
+      if (!dev.gatt.connected) throw new Error('GATT dropped during stabilization');
+      s = await state.server.getPrimaryService(svc);
+      break;
+    } catch (err){
+      lastErr = err;
+      console.warn(`BLE connect attempt ${attempt} failed:`, err.message || err);
+      try { dev.gatt.disconnect(); } catch {}
+      if (attempt < 4){
+        setStatus(`Connect retry ${attempt}/3...`, 'warn');
+        await new Promise(r => setTimeout(r, 500 * attempt));   // exponential-ish backoff
+      }
+    }
+  }
+  if (!s){
+    throw lastErr || new Error('BLE connect failed after retries.');
+  }
+
+  state.triboChar = await s.getCharacteristic(tu);
+  state.triboChar.removeEventListener('characteristicvaluechanged', onTribo);
+  state.triboChar.addEventListener('characteristicvaluechanged', onTribo);
+  await state.triboChar.startNotifications();
+  try {
+    state.ecgChar = await s.getCharacteristic(eu);
+    state.ecgChar.removeEventListener('characteristicvaluechanged', onEcg);
+    state.ecgChar.addEventListener('characteristicvaluechanged', onEcg);
+    await state.ecgChar.startNotifications();
+  } catch(err){ console.warn('ECG unavailable', err); state.ecgChar = null; }
+  saveLast(dev.name||'');
+  setConnUI(true, dev.name||'Unnamed');
+  setStatus('Connected.', 'ok');
+}
+async function connectBle(){
+  if (!navigator.bluetooth){ setStatus('No Web Bluetooth.', 'err'); return; }
+  try {
+    setStatus('Opening device chooser...', 'warn');
+    const dev = await navigator.bluetooth.requestDevice(bleOpts(els.serviceUuid.value.trim()));
+    await connectTo(dev);
+  } catch(err){ console.error(err); setConnUI(false); setStatus(`Connection failed: ${err.message||err}`, 'err'); }
+}
+async function reconnectLast(){
+  const n = getLast();
+  if (!n){ setStatus('No saved device.', 'warn'); return; }
+  try {
+    let dev = null;
+    if (state.device && state.device.name === n) dev = state.device;
+    else if (navigator.bluetooth.getDevices){ setStatus(`Looking for "${n}"...`, 'warn'); const ds = await navigator.bluetooth.getDevices(); dev = ds.find(d => d.name === n); }
+    else { setStatus('Browser cannot reopen BLE devices. Use Connect BLE.', 'warn'); return; }
+    if (!dev){ setStatus(`"${n}" not found.`, 'warn'); return; }
+    await connectTo(dev);
+  } catch(err){ console.error(err); setConnUI(false); setStatus(`Reconnect failed: ${err.message||err}`, 'err'); }
+}
+async function disconnectBle(){
+  try {
+    if (state.triboChar){ try{ await state.triboChar.stopNotifications(); }catch{} state.triboChar.removeEventListener('characteristicvaluechanged', onTribo); }
+    if (state.ecgChar){ try{ await state.ecgChar.stopNotifications(); }catch{} state.ecgChar.removeEventListener('characteristicvaluechanged', onEcg); }
+    if (state.device?.gatt?.connected) state.device.gatt.disconnect();
+  } finally { onDisc(); }
+}
+function onDisc(){ setConnUI(false); setStatus('Disconnected.', 'warn'); state.server = null; state.triboChar = null; state.ecgChar = null; }
+
+// ============== ACTIONS ==============
+function clearData(){
+  state.tRxBuf = new Uint8Array(0); state.eRxBuf = new Uint8Array(0);
+  ['t_x','t_y','e_x','e_y','save_t_x','save_t_y','save_e_x','save_e_y','save_e_y_raw','rPeaksT','rPeaksV','feetT','feetV','patTimes','patValues','beats','trendHRtimes','trendHRvalues','trendRMSSDtimes','trendRMSSDvalues','sqiSamples','stateLog','bookmarks','fitMap','twaveTrace','mismatchTrace','recoveryEvents'].forEach(k => state[k] = []);
+  state.processedBeatTimes = new Set();
+  state.classCounts = {normal:0,pvc:0,pac:0,abnormal:0,unknown:0};
+  state.hrv = {hr:null,sdnn:null,rmssd:null,pnn50:null,lf:null,hf:null,lfHf:null,sd1:null,sd2:null};
+  state.twinDivergence = null; state.signalQuality = 'idle'; state.spectrogram.columns = []; state.sessionStart = null;
+  state.hrModel = null; resetLocalTemplate();
+  ecgHP.reset(); ecgLP.reset();
+  els.patValue.textContent = '—';
+  setStatus(state.isConnected ? 'Connected. Cleared.' : 'Cleared.', state.isConnected ? 'ok' : 'warn');
+}
+function startCalibration(){
+  if (!state.isConnected){ setStatus('Connect first.', 'warn'); return; }
+  const dur = Number(els.baselineDur.value) || 60;
+  state.baselineMode = true;
+  state.baselineStart = state.e_x.length ? state.e_x[state.e_x.length-1] : 0;
+  state.template = null; state.templateCount = 0;
+  state.hrModel = null; resetLocalTemplate();
+  state.processedBeatTimes = new Set();
+  state.beats = [];
+  state.classCounts = {normal:0,pvc:0,pac:0,abnormal:0,unknown:0};
+  setStatus(`Calibrating · stay still for ${dur}s`, 'twin');
+}
+function finalizeCalibration(){
+  if (state.beats.length < 10 || !state.template){
+    setStatus('Baseline incomplete · not enough clean beats. Recalibrate.', 'warn');
+    state.baselineMode = false;
+    return;
+  }
+  // Outlier rejection: drop the 15% of beats least similar to the running template
+  const sims = state.beats.map(b => ({ b, sim: beatSimilarity(b.v) ?? -1 }));
+  sims.sort((a, b) => b.sim - a.sim);
+  const keepN = Math.max(8, Math.floor(sims.length * 0.85));
+  const kept = sims.slice(0, keepN);
+  const tpl = new Array(BEAT_LEN).fill(0);
+  for (const k of kept) for (let i=0;i<BEAT_LEN;i++) tpl[i] += k.b.v[i];
+  for (let i=0;i<BEAT_LEN;i++) tpl[i] /= kept.length;
+  state.template = tpl;
+  state.templateCount = kept.length;
+
+  // RR series from kept beats. Apply EXTRA stringency for baseline RR: only
+  // accept beats whose RR is within ±25 % of the median of nearby kept beats.
+  // This is what catches BLE-drop artifacts (huge ~3 s gaps) that would
+  // otherwise inflate baseline RMSSD/SDNN by 2-3x and then make every later
+  // measurement look "divergent" forever after.
+  const keptT = new Set(kept.map(k => k.b.t));
+  const rrRaw = [];
+  for (const b of state.beats){
+    if (!keptT.has(b.t)) continue;
+    if (b.rr != null && b.rr > 300 && b.rr < 2000) rrRaw.push(b.rr);
+  }
+  if (rrRaw.length < 8){ setStatus('Baseline incomplete · not enough valid RR. Recalibrate.', 'warn'); state.baselineMode = false; return; }
+  const sortedRR = rrRaw.slice().sort((a,b)=>a-b);
+  const medRR = sortedRR[sortedRR.length>>1];
+  const rrAll = rrRaw.filter(rr => rr > medRR*0.75 && rr < medRR*1.25);
+  const dropped_rr = rrRaw.length - rrAll.length;
+
+  const hrv = computeHRVTime(rrAll);
+  if (!hrv){ setStatus('Baseline incomplete · not enough clean RR after gap filtering. Recalibrate.', 'warn'); state.baselineMode = false; return; }
+
+  // Sanity check: a typical resting RMSSD is ~20-60 ms. If we see >100 ms
+  // even after gap filtering, the recording was too noisy for a reliable
+  // baseline. Better to refuse than lock a corrupted reference.
+  if (hrv.rmssd > 120 || hrv.sdnn > 150){
+    setStatus(`Baseline rejected · HRV unrealistic (RMSSD ${hrv.rmssd.toFixed(0)}, SDNN ${hrv.sdnn.toFixed(0)}). Sit still and recalibrate.`, 'warn');
+    state.baselineMode = false;
+    return;
+  }
+  recomputeAllBeatsAgainstTemplate();
+  const tNow = state.e_x.length ? state.e_x[state.e_x.length-1] : 0;
+  state.baseline = {hr:hrv.hr, sdnn:hrv.sdnn, rmssd:hrv.rmssd, pnn50:hrv.pnn50, lockedAt:tNow, beats:state.templateCount};
+  state.twinDirty = true;
+  state.baselineMode = false;
+  const dropped_morph = state.beats.length - kept.length;
+  setStatus(`Twin baseline locked · HR ${hrv.hr.toFixed(0)} bpm, RMSSD ${hrv.rmssd.toFixed(0)} ms · kept ${state.templateCount} beats (dropped ${dropped_morph} morph outliers, ${dropped_rr} RR outliers)`, 'ok');
+}
+// =============================================================
+//   TWIN PROFILE — persistence, naming, save/load
+// =============================================================
+// A twin profile contains only the LEARNED MODEL — not raw observation
+// data. It's what you'd want to keep across sessions: the global template,
+// the HR-conditioned family of templates, baseline statistics, and what
+// settings produced them. Compact JSON, ~15-25 KB. Multiple profiles can be
+// stored in localStorage (e.g. one per lead position).
+const TWIN_SCHEMA_VERSION = 1;
+const TWIN_LS_PREFIX = 'cardiacTwin:profile:';
+const TWIN_LS_LASTNAME = 'cardiacTwin:lastProfileName';
+
+function serializeTwin(){
+  if (!state.template && !state.baseline && !state.hrModel) return null;
+  // Templates are stored as plain arrays. Float32Array round-trips through
+  // JSON.stringify lossily (becomes an object), so we convert.
+  const hrm = state.hrModel ? {
+    grid: HR_GRID.slice(),
+    templates: state.hrModel.templates.map(t => t === null ? null : Array.from(t)),
+    eff_n: Array.from(state.hrModel.eff_n),
+  } : null;
+  return {
+    schema: TWIN_SCHEMA_VERSION,
+    createdAt: new Date().toISOString(),
+    leadMode: currentLeadMode,
+    presets: {
+      rpThresh: Number(els.rpThresh.value),
+      rpRefract: Number(els.rpRefract.value),
+      twaveWin: Number(els.twaveWin.value),
+      twaveRatio: Number(els.twaveRatio.value),
+      morphCutoff: Number(els.morphCutoff.value),
+      prematureCutoff: Number(els.prematureCutoff.value),
+      hpCut: Number(els.hpCut.value),
+      lpCut: Number(els.lpCut.value),
+    },
+    template: state.template ? Array.from(state.template) : null,
+    templateCount: state.templateCount,
+    baseline: state.baseline ? {...state.baseline} : null,
+    hrModel: hrm,
+    beatGeometry: { BEAT_LEN, BEFORE, AFTER, ECG_FS },
+  };
+}
+
+function deserializeTwin(prof){
+  if (!prof || prof.schema !== TWIN_SCHEMA_VERSION){
+    setStatus(`Twin file: unsupported schema (got ${prof && prof.schema}, expected ${TWIN_SCHEMA_VERSION}).`, 'warn');
+    return false;
+  }
+  // Sanity-check beat geometry — we can't load a profile that was built with
+  // a different sample-rate / window. Soft-block with a clear message.
+  if (prof.beatGeometry){
+    const g = prof.beatGeometry;
+    if (g.BEAT_LEN !== BEAT_LEN || g.ECG_FS !== ECG_FS){
+      setStatus(`Twin file: incompatible beat geometry (BEAT_LEN ${g.BEAT_LEN} vs ${BEAT_LEN}, ECG_FS ${g.ECG_FS} vs ${ECG_FS}).`, 'warn');
+      return false;
+    }
+  }
+  // Apply lead preset first so all the other knobs land in the right place,
+  // then overlay the profile's own preset values (in case the profile was
+  // tuned in custom mode).
+  if (prof.leadMode && prof.leadMode !== 'custom') applyLeadPreset(prof.leadMode);
+  if (prof.presets){
+    const p = prof.presets;
+    if (p.rpThresh != null) els.rpThresh.value = p.rpThresh;
+    if (p.rpRefract != null) els.rpRefract.value = p.rpRefract;
+    if (p.twaveWin != null) els.twaveWin.value = p.twaveWin;
+    if (p.twaveRatio != null) els.twaveRatio.value = p.twaveRatio;
+    if (p.morphCutoff != null) els.morphCutoff.value = p.morphCutoff;
+    if (p.prematureCutoff != null) els.prematureCutoff.value = p.prematureCutoff;
+    if (p.hpCut != null) els.hpCut.value = p.hpCut;
+    if (p.lpCut != null) els.lpCut.value = p.lpCut;
+    configFilters();
+    syncParams();
+  }
+  state.template = prof.template ? prof.template.slice() : null;
+  state.templateCount = prof.templateCount || 0;
+  state.baseline = prof.baseline ? {...prof.baseline} : null;
+  if (prof.hrModel){
+    const hrm = makeEmptyHRModel();
+    for (let k=0;k<HR_BINS;k++){
+      const t = prof.hrModel.templates[k];
+      hrm.templates[k] = (t && t.length === BEAT_LEN) ? t.slice() : null;
+      hrm.eff_n[k] = prof.hrModel.eff_n[k] || 0;
+    }
+    state.hrModel = hrm;
+  }
+  return true;
+}
+
+// ---- localStorage persistence ----
+function saveTwinToLocalStorage(name){
+  if (!name) name = 'default';
+  const prof = serializeTwin();
+  if (!prof) return false;
+  try {
+    localStorage.setItem(TWIN_LS_PREFIX + name, JSON.stringify(prof));
+    localStorage.setItem(TWIN_LS_LASTNAME, name);
+    return true;
+  } catch (e){
+    console.warn('Failed to save twin profile:', e);
+    return false;
+  }
+}
+function loadTwinFromLocalStorage(name){
+  if (!name) name = localStorage.getItem(TWIN_LS_LASTNAME) || 'default';
+  const raw = localStorage.getItem(TWIN_LS_PREFIX + name);
+  if (!raw) return false;
+  try {
+    const prof = JSON.parse(raw);
+    if (deserializeTwin(prof)){
+      state.currentTwinName = name;
+      return true;
+    }
+  } catch (e){ console.warn('Failed to parse twin profile:', e); }
+  return false;
+}
+function listTwinProfiles(){
+  const out = [];
+  for (let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if (k && k.startsWith(TWIN_LS_PREFIX)){
+      try {
+        const prof = JSON.parse(localStorage.getItem(k));
+        out.push({ name: k.slice(TWIN_LS_PREFIX.length), createdAt: prof.createdAt, leadMode: prof.leadMode });
+      } catch {}
+    }
+  }
+  out.sort((a,b) => (b.createdAt||'').localeCompare(a.createdAt||''));
+  return out;
+}
+function deleteTwinProfile(name){
+  if (!name) return;
+  localStorage.removeItem(TWIN_LS_PREFIX + name);
+  if (localStorage.getItem(TWIN_LS_LASTNAME) === name){
+    localStorage.removeItem(TWIN_LS_LASTNAME);
+  }
+}
+
+// ---- File import/export (.twin.json) ----
+function exportTwinFile(){
+  const prof = serializeTwin();
+  if (!prof){ setStatus('Nothing to export — calibrate first.', 'warn'); return; }
+  const tag = new Date().toISOString().replace(/[:.]/g, '-');
+  const name = (state.currentTwinName || 'twin');
+  const blob = new Blob([JSON.stringify(prof, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `${name}_${tag}.twin.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  setStatus(`Twin exported as ${a.download}`, 'ok');
+}
+function importTwinFile(file){
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const prof = JSON.parse(reader.result);
+      if (deserializeTwin(prof)){
+        setStatus(`Twin loaded from "${file.name}".`, 'ok');
+      }
+    } catch (e){
+      setStatus(`Failed to parse twin file: ${e.message}`, 'warn');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ---- CSV → twin import ----
+// Reads a previously-exported session CSV, finds the BEAT_TEMPLATE and
+// HR_TEMPLATE_FAMILY sections, reconstructs a twin profile from them.
+// Also pulls baseline values from METADATA if present.
+function importTwinFromCsv(file){
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const text = reader.result;
+      const lines = text.split(/\r?\n/);
+      // Index sections
+      const sections = {};
+      let cur = null;
+      for (let i=0;i<lines.length;i++){
+        const l = lines[i];
+        if (l.startsWith('## SECTION:')){
+          cur = l.replace('## SECTION:','').trim();
+          sections[cur] = i;
+        }
+      }
+      // Reconstruct template
+      let template = null;
+      if (sections.BEAT_TEMPLATE != null){
+        const start = sections.BEAT_TEMPLATE + 2;
+        const end = nextSection(sections, start, lines.length);
+        const tpl = new Array(BEAT_LEN).fill(0);
+        let n = 0;
+        for (let i=start;i<end;i++){
+          const cells = lines[i].split(',');
+          if (cells.length < 3) continue;
+          const idx = parseInt(cells[0], 10);
+          const amp = parseFloat(cells[2]);
+          if (isFinite(idx) && isFinite(amp) && idx >= 0 && idx < BEAT_LEN){
+            tpl[idx] = amp; n++;
+          }
+        }
+        if (n === BEAT_LEN) template = tpl;
+      }
+      // Reconstruct HR model
+      let hrModelData = null;
+      if (sections.HR_TEMPLATE_FAMILY != null){
+        const start = sections.HR_TEMPLATE_FAMILY + 1;   // header row
+        const end = nextSection(sections, start, lines.length);
+        const header = (lines[start] || '').split(',');
+        const dataStart = start + 1;
+        const templates = new Array(HR_BINS).fill(null);
+        const eff_n = new Float32Array(HR_BINS);
+        for (let i=dataStart;i<end;i++){
+          const cells = lines[i].split(',');
+          if (cells.length < 2 + BEAT_LEN) continue;
+          const hr = parseFloat(cells[0]);
+          const eff = parseFloat(cells[1]);
+          if (!isFinite(hr) || !isFinite(eff)) continue;
+          const k = HR_GRID.indexOf(hr);
+          if (k < 0) continue;
+          const tpl = new Array(BEAT_LEN);
+          for (let j=0;j<BEAT_LEN;j++) tpl[j] = parseFloat(cells[2+j]) || 0;
+          templates[k] = tpl;
+          eff_n[k] = eff;
+        }
+        hrModelData = { grid: HR_GRID.slice(), templates: templates.map(t => t ? Array.from(t) : null), eff_n: Array.from(eff_n) };
+      }
+      // Pull baseline from METADATA
+      let baseline = null;
+      if (sections.METADATA != null){
+        const start = sections.METADATA + 1;
+        const end = nextSection(sections, start, lines.length);
+        const meta = {};
+        for (let i=start;i<end;i++){
+          const cells = lines[i].split(',');
+          if (cells.length >= 2) meta[cells[0].trim()] = cells[1].trim();
+        }
+        if (meta.Baseline_HR_bpm){
+          baseline = {
+            hr: parseFloat(meta.Baseline_HR_bpm),
+            sdnn: parseFloat(meta.Baseline_SDNN_ms),
+            rmssd: parseFloat(meta.Baseline_RMSSD_ms),
+            pnn50: parseFloat(meta.Baseline_pNN50_pct),
+            lockedAt: 0,
+            beats: 0,
+          };
+          // null out if non-finite
+          for (const k of ['hr','sdnn','rmssd','pnn50']){
+            if (!isFinite(baseline[k])) baseline = null;
+          }
+        }
+      }
+      if (!template && !hrModelData){
+        setStatus('CSV has no BEAT_TEMPLATE or HR_TEMPLATE_FAMILY section. Nothing to import.', 'warn');
+        return;
+      }
+      const prof = {
+        schema: TWIN_SCHEMA_VERSION,
+        createdAt: new Date().toISOString(),
+        leadMode: currentLeadMode,
+        presets: {},
+        template: template,
+        templateCount: 100,            // assume reasonably mature
+        baseline: baseline,
+        hrModel: hrModelData,
+        beatGeometry: { BEAT_LEN, BEFORE, AFTER, ECG_FS },
+      };
+      if (deserializeTwin(prof)){
+        setStatus(`Twin reconstructed from "${file.name}". Template: ${template?'yes':'no'}, HR model: ${hrModelData?'yes':'no'}, baseline: ${baseline?'yes':'no'}.`, 'ok');
+      }
+    } catch (e){
+      setStatus(`Failed to parse CSV: ${e.message}`, 'warn');
+    }
+  };
+  reader.readAsText(file);
+}
+function nextSection(sections, start, fallback){
+  // Find the smallest section index strictly greater than `start - 2`
+  // (i.e. after the current section's header+column-header pair).
+  let next = fallback;
+  for (const k in sections){
+    const idx = sections[k];
+    if (idx >= start && idx < next) next = idx;
+  }
+  return next;
+}
+
+function resetTwin(){
+  state.template = null; state.templateCount = 0; state.baseline = null; state.baselineMode = false;
+  state.hrModel = null; resetLocalTemplate();
+  state.beats = []; state.processedBeatTimes = new Set();
+  state.classCounts = {normal:0,pvc:0,pac:0,abnormal:0,unknown:0};
+  state.twinDivergence = null;
+  state.trendHRtimes = []; state.trendHRvalues = []; state.trendRMSSDtimes = []; state.trendRMSSDvalues = [];
+  state.spectrogram.columns = []; state.stateLog = [];
+  setStatus('Twin reset.', 'twin');
+}
+function exportCsv(){
+  if (!state.save_t_x.length && !state.save_e_x.length){ setStatus('No data.', 'warn'); return; }
+  const tag = new Date().toISOString().replace(/[:.]/g, '-');
+  const out = [];
+
+  // ============ HEADER / METADATA ============
+  out.push('# CARDIAC DIGITAL TWIN — SESSION EXPORT');
+  out.push(`# Exported: ${new Date().toISOString()}`);
+  out.push('# This file contains multiple sections, each preceded by "## SECTION:" and a column header row.');
+  out.push('# To split in Python: read with pandas line-by-line, or grep ## SECTION lines for byte offsets.');
+  out.push('');
+
+  out.push('## SECTION: METADATA');
+  out.push('Field,Value');
+  out.push(`Exported_at,${new Date().toISOString()}`);
+  out.push(`ECG_sample_rate_Hz,${ECG_FS}`);
+  out.push(`Filter_enabled,${state.filterEnabled}`);
+  out.push(`Filter_HP_Hz,${state.hpCut}`);
+  out.push(`Filter_LP_Hz,${state.lpCut}`);
+  out.push(`Beat_window_before_ms,${BEFORE_MS}`);
+  out.push(`Beat_window_after_ms,${AFTER_MS}`);
+  out.push(`Beat_window_samples,${BEAT_LEN}`);
+  out.push(`Total_ECG_samples,${state.save_e_x.length}`);
+  out.push(`Total_tribo_samples,${state.save_t_x.length}`);
+  out.push(`Total_R_peaks,${state.rPeaksT.length}`);
+  out.push(`Total_pulse_feet,${state.feetT.length}`);
+  out.push(`Total_PAT_values,${state.patTimes.length}`);
+  out.push(`Total_beats,${state.beats.length}`);
+  out.push(`Beats_normal,${state.classCounts.normal||0}`);
+  out.push(`Beats_pvc,${state.classCounts.pvc||0}`);
+  out.push(`Beats_pac,${state.classCounts.pac||0}`);
+  out.push(`Beats_abnormal,${state.classCounts.abnormal||0}`);
+  out.push(`Beats_unknown,${state.classCounts.unknown||0}`);
+  out.push(`Template_count,${state.templateCount}`);
+  out.push(`Twin_divergence_pct,${state.twinDivergence ?? ''}`);
+  out.push(`Twin_state_current,${state.twinState}`);
+  out.push(`Signal_quality_current,${state.signalQuality}`);
+  out.push(`Morphology_cutoff,${Number(els.morphCutoff.value)}`);
+  out.push(`Premature_cutoff,${Number(els.prematureCutoff.value)}`);
+  if (state.baseline){
+    out.push(`Baseline_locked_at_s,${state.baseline.lockedAt.toFixed(2)}`);
+    out.push(`Baseline_HR_bpm,${state.baseline.hr.toFixed(2)}`);
+    out.push(`Baseline_SDNN_ms,${state.baseline.sdnn.toFixed(2)}`);
+    out.push(`Baseline_RMSSD_ms,${state.baseline.rmssd.toFixed(2)}`);
+    out.push(`Baseline_pNN50_pct,${state.baseline.pnn50.toFixed(2)}`);
+    out.push(`Baseline_beats_used,${state.baseline.beats}`);
+  }
+  if (state.hrv){
+    const h = state.hrv;
+    if (h.hr != null) out.push(`Current_HR_bpm,${h.hr.toFixed(2)}`);
+    if (h.sdnn != null) out.push(`Current_SDNN_ms,${h.sdnn.toFixed(2)}`);
+    if (h.rmssd != null) out.push(`Current_RMSSD_ms,${h.rmssd.toFixed(2)}`);
+    if (h.pnn50 != null) out.push(`Current_pNN50_pct,${h.pnn50.toFixed(2)}`);
+    if (h.lf != null) out.push(`Current_LF_power,${h.lf.toFixed(4)}`);
+    if (h.hf != null) out.push(`Current_HF_power,${h.hf.toFixed(4)}`);
+    if (h.lfHf != null) out.push(`Current_LFHF_ratio,${h.lfHf.toFixed(4)}`);
+    if (h.sd1 != null) out.push(`Current_SD1_ms,${h.sd1.toFixed(2)}`);
+    if (h.sd2 != null) out.push(`Current_SD2_ms,${h.sd2.toFixed(2)}`);
+  }
+  out.push('');
+
+  // ============ SECTION: SIGNALS (per-sample) ============
+  const ts = new Set();
+  const td = new Map(), ed = new Map(), edr = new Map();
+  for (let i=0;i<state.save_t_x.length;i++){ const k = state.save_t_x[i].toFixed(6); ts.add(k); td.set(k, state.save_t_y[i]); }
+  for (let i=0;i<state.save_e_x.length;i++){ const k = state.save_e_x[i].toFixed(6); ts.add(k); ed.set(k, state.save_e_y[i]); edr.set(k, state.save_e_y_raw[i]); }
+  const rp = new Set(state.rPeaksT.map(t => t.toFixed(4)));
+  const ft = new Set(state.feetT.map(t => t.toFixed(4)));
+  const pm = new Map(state.patTimes.map((t,i) => [t.toFixed(4), state.patValues[i]]));
+  const bc = new Map(), bs = new Map(), brr = new Map(), bhr = new Map();
+  for (const b of state.beats){
+    const k = b.t.toFixed(4);
+    bc.set(k, b.cls); bs.set(k, b.sim);
+    if (b.rr != null) brr.set(k, b.rr);
+    if (b.hr != null) bhr.set(k, b.hr);
+  }
+
+  out.push('## SECTION: SIGNALS');
+  out.push('Time_s,Tribo_V,ECG_Filt,ECG_Raw,R_Peak,Pulse_Foot,PAT_ms,Beat_Class,Beat_Sim,Beat_RR_ms,Beat_HR_bpm,SignalQuality');
+  Array.from(ts).sort((a,b) => parseFloat(a)-parseFloat(b)).forEach(t => {
+    const t4 = Number(t).toFixed(4);
+    const sigQ = sqiAt(Number(t));
+    out.push([
+      t,
+      td.get(t)??'',
+      ed.get(t)??'',
+      edr.get(t)??'',
+      rp.has(t4)?'1':'',
+      ft.has(t4)?'1':'',
+      pm.has(t4)?pm.get(t4):'',
+      bc.has(t4)?bc.get(t4):'',
+      bs.has(t4)?(bs.get(t4)??'').toString().slice(0,6):'',
+      brr.has(t4)?brr.get(t4).toFixed(1):'',
+      bhr.has(t4)?bhr.get(t4).toFixed(1):'',
+      sigQ === 'idle' ? '' : sigQ
+    ].join(','));
+  });
+  out.push('');
+
+  // ============ SECTION: BEATS (one row per beat) ============
+  out.push('## SECTION: BEATS');
+  out.push('Beat_idx,Time_s,Class,Similarity,RR_ms,HR_bpm,Anomaly,Sim_Conditional');
+  state.beats.forEach((b, i) => {
+    out.push([
+      i,
+      b.t.toFixed(4),
+      b.cls,
+      b.sim != null ? b.sim.toFixed(4) : '',
+      b.rr != null ? b.rr.toFixed(1) : '',
+      b.hr != null ? b.hr.toFixed(2) : '',
+      b.anomaly != null ? b.anomaly.toFixed(4) : '',
+      b.simConditional ? '1' : '0'
+    ].join(','));
+  });
+  out.push('');
+
+  // ============ SECTION: HRV TREND ============
+  out.push('## SECTION: HRV_TREND');
+  out.push('Time_s,HR_bpm,RMSSD_ms');
+  for (let i=0;i<state.trendHRtimes.length;i++){
+    out.push(`${state.trendHRtimes[i].toFixed(2)},${state.trendHRvalues[i].toFixed(2)},${state.trendRMSSDvalues[i] != null ? state.trendRMSSDvalues[i].toFixed(2) : ''}`);
+  }
+  out.push('');
+
+  // ============ SECTION: SIGNAL QUALITY ============
+  out.push('## SECTION: SIGNAL_QUALITY');
+  out.push('Time_s,Quality,STD,Drift,PeakToPeak');
+  for (const s of state.sqiSamples){
+    out.push(`${s.t.toFixed(2)},${s.level},${s.std.toFixed(2)},${s.drift.toFixed(2)},${s.ptp.toFixed(2)}`);
+  }
+  out.push('');
+
+  // ============ SECTION: TWIN STATE LOG ============
+  out.push('## SECTION: STATE_LOG');
+  out.push('Time_s,State');
+  for (const s of state.stateLog) out.push(`${s.t.toFixed(2)},${s.state}`);
+  out.push('');
+
+  // ============ SECTION: BOOKMARKS ============
+  // User-added marks within the session, useful for correlating subjective
+  // experience ("felt a flutter at 2:14") with the dashboard's analysis.
+  out.push('## SECTION: BOOKMARKS');
+  out.push('Time_s,Label,HR_bpm,RMSSD_ms,SDNN_ms,Divergence_pct,Anomaly,Mismatch');
+  for (const bm of state.bookmarks){
+    const lbl = (bm.label || '').replace(/"/g, '""');
+    const s = bm.snap || {};
+    const f = (v, d=0) => v == null ? '' : v.toFixed(d);
+    out.push(`${bm.t.toFixed(2)},"${lbl}",${f(s.hr,1)},${f(s.rmssd,1)},${f(s.sdnn,1)},${s.div != null ? s.div : ''},${f(s.anomaly,3)},${f(s.mismatch,3)}`);
+  }
+  out.push('');
+
+  // ============ SECTION: HRV SPECTROGRAM ============
+  const fbins = state.spectrogram.freqBins;
+  const fmax = state.spectrogram.fmax;
+  out.push('## SECTION: SPECTROGRAM');
+  out.push('Time_s,Freq_Hz,Magnitude_log');
+  for (const c of state.spectrogram.columns){
+    for (let k=0;k<fbins;k++){
+      const f = (k+0.5) * fmax / fbins;
+      out.push(`${c.t.toFixed(2)},${f.toFixed(4)},${c.mags[k].toFixed(4)}`);
+    }
+  }
+  out.push('');
+
+  // ============ SECTION: BEAT TEMPLATE ============
+  out.push('## SECTION: BEAT_TEMPLATE');
+  out.push('Sample_idx,Time_rel_ms,Amplitude_norm');
+  if (state.template){
+    for (let i=0;i<state.template.length;i++){
+      const tRel = (i - BEFORE) * 1000 / ECG_FS;
+      out.push(`${i},${tRel.toFixed(2)},${state.template[i].toFixed(6)}`);
+    }
+  }
+  out.push('');
+
+  // ============ SECTION: HR-CONDITIONED TWIN ============
+  // Family of templates indexed by HR. One row per (HR_bin, sample).
+  // Fields: HR_bpm, eff_n, sample_0, sample_1, ... sample_BEAT_LEN-1
+  out.push('## SECTION: HR_TEMPLATE_FAMILY');
+  if (state.hrModel){
+    const hdr = ['HR_bpm','eff_n'];
+    for (let i=0;i<BEAT_LEN;i++){
+      const tRel = (i - BEFORE) * 1000 / ECG_FS;
+      hdr.push(`t${tRel.toFixed(0)}ms`);
+    }
+    out.push(hdr.join(','));
+    for (let k=0;k<HR_BINS;k++){
+      const tpl = state.hrModel.templates[k];
+      const eff = state.hrModel.eff_n[k];
+      if (tpl === null || eff < 0.5) continue;
+      const row = [HR_GRID[k], eff.toFixed(2)];
+      for (let i=0;i<BEAT_LEN;i++) row.push(tpl[i].toFixed(6));
+      out.push(row.join(','));
+    }
+  }
+  out.push('');
+
+  // ============ SECTION: BEAT WAVEFORMS (every beat, every sample) ============
+  // wide format: each row = one beat, columns = sample 0..BEAT_LEN-1
+  out.push('## SECTION: BEAT_WAVEFORMS');
+  const wfHeader = ['Beat_idx','Time_s','Class'];
+  for (let i=0;i<BEAT_LEN;i++) wfHeader.push(`s${i}`);
+  out.push(wfHeader.join(','));
+  state.beats.forEach((b, i) => {
+    const row = [i, b.t.toFixed(4), b.cls];
+    for (let j=0;j<b.v.length;j++) row.push(b.v[j].toFixed(5));
+    out.push(row.join(','));
+  });
+
+  const blob = new Blob([out.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `twin_session_${tag}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setStatus('Session exported as a single CSV.', 'ok');
+}
+
+// ============== REPORT ==============
+function fmtDur(s){
+  if (!isFinite(s) || s < 0) return '—';
+  const h = Math.floor(s/3600), m = Math.floor((s-h*3600)/60), sec = Math.floor(s-h*3600-m*60);
+  return h > 0 ? `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}` : `${m}:${String(sec).padStart(2,'0')}`;
+}
+function generateReport(){
+  const o = [];
+  o.push('=== CARDIAC TWIN — SESSION REPORT ===');
+  o.push(`Generated: ${new Date().toLocaleString()}`);
+  o.push('');
+  if (!state.beats.length){ o.push('No beats recorded yet.'); return o.join('\n'); }
+  const tStart = state.beats[0].t, tEnd = state.beats[state.beats.length-1].t;
+  o.push(`Recording duration: ${fmtDur(tEnd-tStart)}`);
+  o.push(`Beats analyzed:     ${state.beats.length}`);
+  o.push(`Filter:             ${state.filterEnabled ? `ON (${state.hpCut.toFixed(2)}–${state.lpCut.toFixed(0)} Hz)` : 'OFF'}`);
+  o.push('');
+  o.push('--- BEAT CLASSIFICATION ---');
+  const cc = state.classCounts;
+  const tot = cc.normal + cc.pvc + cc.pac + cc.abnormal + cc.unknown;
+  const p = n => tot ? `${(n/tot*100).toFixed(1)}%` : '0%';
+  o.push(`  Normal:           ${cc.normal} (${p(cc.normal)})`);
+  o.push(`  PVC:              ${cc.pvc}`);
+  o.push(`  PAC (premature):  ${cc.pac}`);
+  o.push(`  Atypical morph:   ${cc.abnormal}`);
+  o.push(`  Unknown:          ${cc.unknown}`);
+  o.push('');
+  o.push('--- HEART RATE ---');
+  const hrs = state.beats.map(b => b.hr).filter(x => x);
+  if (hrs.length){
+    const mn = Math.min(...hrs), mx = Math.max(...hrs);
+    const mean = hrs.reduce((a,b)=>a+b,0)/hrs.length;
+    o.push(`  current:  ${state.hrv.hr ? state.hrv.hr.toFixed(0) : '—'} bpm`);
+    o.push(`  range:    ${mn.toFixed(0)} – ${mx.toFixed(0)} bpm`);
+    o.push(`  mean:     ${mean.toFixed(0)} bpm`);
+    if (state.baseline) o.push(`  baseline: ${state.baseline.hr.toFixed(0)} bpm`);
+  }
+  o.push('');
+  o.push('--- HRV (rolling, latest) ---');
+  const h = state.hrv;
+  const f = (v,d=0) => v == null ? '—' : v.toFixed(d);
+  o.push(`  SDNN:   ${f(h.sdnn)} ms${state.baseline ? `  (baseline ${f(state.baseline.sdnn)})` : ''}`);
+  o.push(`  RMSSD:  ${f(h.rmssd)} ms${state.baseline ? `  (baseline ${f(state.baseline.rmssd)})` : ''}`);
+  o.push(`  pNN50:  ${f(h.pnn50,1)} %${state.baseline ? `  (baseline ${f(state.baseline.pnn50,1)})` : ''}`);
+  o.push(`  LF/HF:  ${f(h.lfHf,2)}`);
+  o.push(`  SD1:    ${f(h.sd1,1)} ms`);
+  o.push(`  SD2:    ${f(h.sd2,1)} ms`);
+  o.push('');
+  // Anomaly score summary
+  const anomVals = state.beats.map(b => b.anomaly).filter(x => x != null);
+  if (anomVals.length){
+    anomVals.sort((a,b)=>a-b);
+    const median = anomVals[anomVals.length>>1];
+    const p95 = anomVals[Math.floor(anomVals.length*0.95)];
+    const high = anomVals.filter(x => x > 0.5).length;
+    o.push('--- ANOMALY SCORE (per beat, 0=match, 1=anomalous) ---');
+    o.push(`  median:  ${median.toFixed(2)}`);
+    o.push(`  95th:    ${p95.toFixed(2)}`);
+    o.push(`  beats with anomaly > 0.5: ${high} (${(high/anomVals.length*100).toFixed(1)}%)`);
+    o.push('');
+  }
+  o.push('--- TWIN STATE TIMELINE ---');
+  if (state.stateLog.length){
+    const segs = [];
+    for (let i=0;i<state.stateLog.length;i++){
+      const start = state.stateLog[i].t;
+      const end = i < state.stateLog.length-1 ? state.stateLog[i+1].t : tEnd;
+      segs.push({s:state.stateLog[i].state, dur:Math.max(0, end-start)});
+    }
+    const totals = {};
+    for (const s of segs) totals[s.s] = (totals[s.s]||0) + s.dur;
+    const td2 = Object.values(totals).reduce((a,b)=>a+b,0) || 1;
+    for (const s of Object.keys(totals).sort()){
+      o.push(`  ${stateLabel(s).padEnd(34)} ${fmtDur(totals[s])}  (${(totals[s]/td2*100).toFixed(0)}%)`);
+    }
+  } else o.push('  (no transitions yet)');
+  o.push('');
+  o.push('--- ECTOPIC EVENTS ---');
+  const ev = state.beats.filter(b => b.cls === 'pvc' || b.cls === 'pac' || b.cls === 'abnormal');
+  if (ev.length){
+    for (const e of ev.slice(0,50)) o.push(`  ${fmtDur(e.t-tStart).padStart(8)}  ${e.cls.toUpperCase().padEnd(8)}  sim=${e.sim != null ? e.sim.toFixed(2) : '—'}  RR=${e.rr ? e.rr.toFixed(0) : '—'} ms`);
+    if (ev.length > 50) o.push(`  ... ${ev.length-50} more`);
+  } else o.push('  none');
+  o.push('');
+  if (state.bookmarks.length){
+    o.push('--- BOOKMARKS ---');
+    for (const bm of state.bookmarks){
+      o.push(`  ${fmtDur(bm.t-tStart).padStart(8)}  ${bm.label || '(no label)'}`);
+    }
+    o.push('');
+  }
+  if (state.baseline){
+    o.push('--- BASELINE ---');
+    o.push(`  Locked at:  t = ${state.baseline.lockedAt.toFixed(1)} s`);
+    o.push(`  Beats used: ${state.baseline.beats}`);
+  }
+  o.push('=== END ===');
+  return o.join('\n');
+}
+function showReport(){ els.reportContent.textContent = generateReport(); els.reportCard.style.display = 'block'; els.reportCard.scrollIntoView({behavior:'smooth', block:'start'}); }
+function downloadReport(){
+  const txt = els.reportContent.textContent || generateReport();
+  const blob = new Blob([txt], {type:'text/plain;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const tag = new Date().toISOString().replace(/[:.]/g, '-');
+  a.href = url; a.download = `twin_report_${tag}.txt`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ============== PLOT HELPERS ==============
+function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+function filterWin(t, v, xMin){ let s = 0; while (s < t.length && t[s] < xMin) s++; return {t:t.slice(s), v:v.slice(s)}; }
+function getRange(values, fLo, fHi, padFrac, minPad){
+  if (!values.length) return [fLo, fHi];
+  let lo = Infinity, hi = -Infinity;
+  for (const x of values){ if (x < lo) lo = x; if (x > hi) hi = x; }
+  const pad = Math.max((hi-lo)*padFrac, minPad);
+  return [lo-pad, hi+pad];
+}
+function setupCv(canvas){
+  const dpr = window.devicePixelRatio || 1;
+  const r = canvas.getBoundingClientRect();
+  const w = r.width || 600, h = r.height || 200;
+  if (canvas.width !== Math.round(w*dpr) || canvas.height !== Math.round(h*dpr)){
+    canvas.width = Math.round(w*dpr); canvas.height = Math.round(h*dpr);
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return {ctx, w, h};
+}
+function drawAxes(ctx, w, h, xMin, xMax, yMin, yMax, yLabel){
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, w, h);
+  const left = 44, right = 8, top = 8, bottom = 22;
+  const pw = w-left-right, ph = h-top-bottom;
+  ctx.strokeStyle = C.gridSoft; ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i=0;i<=4;i++){ const y = top + ph*i/4; ctx.moveTo(left, y); ctx.lineTo(left+pw, y); }
+  for (let i=0;i<=5;i++){ const x = left + pw*i/5; ctx.moveTo(x, top); ctx.lineTo(x, top+ph); }
+  ctx.stroke();
+  ctx.strokeStyle = C.axis; ctx.beginPath();
+  ctx.moveTo(left, top); ctx.lineTo(left, top+ph); ctx.lineTo(left+pw, top+ph); ctx.stroke();
+  ctx.fillStyle = C.axis; ctx.font = '11px system-ui';
+  ctx.fillText(yMax.toFixed(0), 4, top+9);
+  ctx.fillText(yMin.toFixed(0), 4, top+ph);
+  if (yLabel) ctx.fillText(yLabel, 4, 14);
+  ctx.fillText(xMin.toFixed(1), left, h-5);
+  const e = xMax.toFixed(1);
+  ctx.fillText(e, left+pw - ctx.measureText(e).width, h-5);
+  return {
+    left, right, top, bottom, pw, ph,
+    xMap: x => left + ((x-xMin)/Math.max(1e-9, xMax-xMin))*pw,
+    yMap: y => top + (1 - (y-yMin)/Math.max(1e-9, yMax-yMin))*ph,
+  };
+}
+function drawLine(ctx, t, v, m, color, lw=1.4, a=1){
+  if (t.length < 2) return;
+  ctx.save(); ctx.globalAlpha = a; ctx.strokeStyle = color; ctx.lineWidth = lw;
+  ctx.beginPath();
+  ctx.moveTo(m.xMap(t[0]), m.yMap(v[0]));
+  for (let i=1;i<t.length;i++) ctx.lineTo(m.xMap(t[i]), m.yMap(v[i]));
+  ctx.stroke();
+  ctx.restore();
+}
+function drawDots(ctx, t, v, colors, m, r=4){
+  for (let i=0;i<t.length;i++){
+    ctx.fillStyle = colors[i] || C.rpeak;
+    ctx.beginPath(); ctx.arc(m.xMap(t[i]), m.yMap(v[i]), r, 0, Math.PI*2); ctx.fill();
+  }
+}
+function heatRGB(t){
+  t = Math.max(0, Math.min(1, t));
+  const stops = [[0,10,8,30],[0.25,70,20,110],[0.5,180,40,80],[0.75,240,130,30],[1.0,255,250,180]];
+  for (let i=0;i<stops.length-1;i++){
+    const a = stops[i], b = stops[i+1];
+    if (t <= b[0]){
+      const f = (t-a[0])/(b[0]-a[0]);
+      return [(a[1]+(b[1]-a[1])*f)|0, (a[2]+(b[2]-a[2])*f)|0, (a[3]+(b[3]-a[3])*f)|0];
+    }
+  }
+  return [255,250,180];
+}
+
+// ============== PLOTS ==============
+function drawTribo(xMin, xMax){
+  const {ctx, w, h} = setupCv(els.triboCanvas);
+  const win = filterWin(state.t_x, state.t_y, xMin);
+  const ft = {t:[], v:[]};
+  for (let i=0;i<state.feetT.length;i++) if (state.feetT[i] >= xMin && state.feetT[i] <= xMax){ ft.t.push(state.feetT[i]); ft.v.push(state.feetV[i]); }
+  const [yMin, yMax] = getRange(win.v, -1, 1, 0.2, 0.005);
+  const m = drawAxes(ctx, w, h, xMin, xMax, yMin, yMax, 'V');
+  drawLine(ctx, win.t, win.v, m, C.tribo, 1.2);
+  drawDots(ctx, ft.t, ft.v, ft.t.map(()=>C.foot), m, 3);
+}
+function drawEcg(xMin, xMax){
+  const {ctx, w, h} = setupCv(els.ecgCanvas);
+  const win = filterWin(state.e_x, state.e_y, xMin);
+  const pT=[], pV=[], pC=[];
+  for (const b of state.beats){
+    if (b.t >= xMin && b.t <= xMax){
+      const idx = findClosest(state.rPeaksT, b.t);
+      if (idx >= 0 && Math.abs(state.rPeaksT[idx]-b.t) < 0.05){
+        pT.push(b.t); pV.push(state.rPeaksV[idx]); pC.push(CLS_COLOR[b.cls] || C.rpeak);
+      }
+    }
+  }
+  for (let i=0;i<state.rPeaksT.length;i++){
+    const t = state.rPeaksT[i];
+    if (t < xMin || t > xMax) continue;
+    if (!pT.includes(t)){ pT.push(t); pV.push(state.rPeaksV[i]); pC.push(C.unknown); }
+  }
+  const [yMin, yMax] = getRange(win.v, -200, 200, 0.15, 10);
+  const m = drawAxes(ctx, w, h, xMin, xMax, yMin, yMax, 'ADC');
+  // Poor-quality red overlay
+  ctx.save(); ctx.fillStyle = 'rgba(239,68,68,0.10)';
+  let inP = false, pStart = 0;
+  for (const s of state.sqiSamples){
+    if (s.t < xMin-1) continue;
+    if (s.t > xMax+1) break;
+    if (s.level === 'poor' && !inP){ inP = true; pStart = s.t; }
+    else if (s.level !== 'poor' && inP){
+      ctx.fillRect(m.xMap(Math.max(xMin, pStart)), m.top, m.xMap(Math.min(xMax, s.t)) - m.xMap(Math.max(xMin, pStart)), m.ph);
+      inP = false;
+    }
+  }
+  if (inP) ctx.fillRect(m.xMap(Math.max(xMin, pStart)), m.top, m.xMap(xMax)-m.xMap(Math.max(xMin, pStart)), m.ph);
+  ctx.restore();
+  drawLine(ctx, win.t, win.v, m, C.ecg, 1.4);
+  drawDots(ctx, pT, pV, pC, m, 4);
+  // Bookmarks (vertical amber lines with optional label)
+  ctx.save();
+  const tNowMs = performance.now();
+  for (const bm of state.bookmarks){
+    if (bm.t < xMin || bm.t > xMax) continue;
+    const x = m.xMap(bm.t);
+    const isHighlighted = bm._highlight && bm._highlight > tNowMs;
+    if (isHighlighted){
+      // Pulsing glow halo around the bookmark line — fades over the highlight
+      // window. Lets the user track which bookmark they just clicked even when
+      // multiple are visible.
+      const remaining = (bm._highlight - tNowMs) / 5000;     // 1.0 → 0
+      const pulse = 0.5 + 0.5 * Math.sin(tNowMs * 0.012);
+      ctx.fillStyle = `rgba(251, 191, 36, ${0.18 * remaining * pulse})`;
+      const halo = 14;
+      ctx.fillRect(x - halo, m.top, halo*2, m.ph);
+      ctx.strokeStyle = '#fde68a';
+      ctx.lineWidth = 2.5;
+    } else {
+      ctx.strokeStyle = bm.color || '#fbbf24';
+      ctx.lineWidth = 1.5;
+    }
+    ctx.beginPath();
+    ctx.moveTo(x, m.top);
+    ctx.lineTo(x, m.top + m.ph);
+    ctx.stroke();
+    if (bm.label){
+      ctx.fillStyle = isHighlighted ? '#fde68a' : (bm.color || '#fbbf24');
+      ctx.font = 'bold 10px system-ui';
+      ctx.fillText('🔖 ' + bm.label, x + 3, m.top + 11);
+    } else {
+      ctx.fillStyle = isHighlighted ? '#fde68a' : (bm.color || '#fbbf24');
+      ctx.font = 'bold 11px system-ui';
+      ctx.fillText('🔖', x + 2, m.top + 11);
+    }
+  }
+  ctx.restore();
+}
+function drawTemplate(){
+  const {ctx, w, h} = setupCv(els.templateCanvas);
+  const xMin = -BEFORE_MS, xMax = AFTER_MS;
+  const buf = [];
+  if (state.template) buf.push(...state.template);
+  const recent = state.beats.slice(-25);
+  for (const b of recent) buf.push(...b.v);
+  // Resolve which HR to predict at: simulator override or live current HR.
+  const simHR = els.simHRSlider ? Number(els.simHRSlider.value) : 0;
+  const useSimMode = simHR > 0;
+  const liveHR = state.hrv && state.hrv.hr ? state.hrv.hr : (recent.length ? recent[recent.length-1].hr : null);
+  const targetHR = useSimMode ? simHR : liveHR;
+  let pred = null;
+  if (state.hrModel && targetHR != null) pred = predictBeatAt(targetHR);
+  if (pred) buf.push(...pred.beat);
+  const [yMin, yMax] = getRange(buf, -1.5, 1.5, 0.1, 0.1);
+  const m = drawAxes(ctx, w, h, xMin, xMax, yMin, yMax, 'norm');
+  ctx.strokeStyle = '#3a4d76'; ctx.setLineDash([3,3]); ctx.lineWidth = 1;
+  ctx.beginPath(); const rx = m.xMap(0); ctx.moveTo(rx, m.top); ctx.lineTo(rx, m.top+m.ph); ctx.stroke();
+  ctx.setLineDash([]);
+  const xs = [];
+  for (let i=0;i<BEAT_LEN;i++) xs.push((i-BEFORE)*1000/ECG_FS);
+  // Faded recent beats
+  for (let i=0;i<recent.length-1;i++) drawLine(ctx, xs, recent[i].v, m, C.ecg, 1, 0.16);
+  // Global template (faded when prediction available)
+  if (state.template){
+    drawLine(ctx, xs, state.template, m, C.twin, 1.4, pred ? 0.35 : 1.0);
+  }
+  // Most recent beat (yellow)
+  const mostRecent = recent.length > 0 ? recent[recent.length-1] : null;
+  if (mostRecent) drawLine(ctx, xs, mostRecent.v, m, '#fde68a', 1.6, 0.95);
+  // Residual line (live - predicted), drawn around the zero line at the
+  // bottom of the plot. Only meaningful in live mode (not sim mode).
+  if (!useSimMode && pred && mostRecent){
+    const res = new Array(BEAT_LEN);
+    for (let i=0;i<BEAT_LEN;i++) res[i] = mostRecent.v[i] - pred.beat[i];
+    // shift residual to bottom region of plot for visibility
+    const residOffset = yMin + (yMax-yMin)*0.10;
+    const residY = res.map(r => r * 0.4 + residOffset);
+    ctx.strokeStyle = '#fb7185'; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.7;
+    ctx.beginPath();
+    for (let i=0;i<BEAT_LEN;i++){
+      const px = m.xMap(xs[i]), py = m.yMap(residY[i]);
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke(); ctx.globalAlpha = 1;
+    // Zero baseline for residual
+    ctx.strokeStyle = '#fb7185'; ctx.setLineDash([2,2]); ctx.globalAlpha = 0.3;
+    const zy = m.yMap(residOffset);
+    ctx.beginPath(); ctx.moveTo(m.left, zy); ctx.lineTo(m.left+m.pw, zy); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+  }
+  // Predicted beat (green, prominent)
+  if (pred){
+    drawLine(ctx, xs, pred.beat, m, '#34d399', 2.4, 0.95);
+    ctx.fillStyle = '#34d399';
+    ctx.font = 'bold 11px system-ui';
+    const tagL = useSimMode ? 'SIMULATING' : 'Predicted';
+    const lbl = `${tagL} @ ${pred.hrUsed.toFixed(0)} bpm` + (pred.extrapolated ? ' (extrap)' : '');
+    ctx.fillText(lbl, m.left + 6, m.top + 12);
+    ctx.fillStyle = C.axis; ctx.font = '10px system-ui';
+    ctx.fillText(`coverage n=${pred.coverage.toFixed(1)}`, m.left + 6, m.top + 24);
+  } else if (!state.template){
+    ctx.fillStyle = C.axis; ctx.font = '12px system-ui';
+    ctx.fillText('No template — calibrate to build your reference beat', 60, h/2);
+  }
+  // Update side label
+  if (els.predHRLabel){
+    els.predHRLabel.textContent = useSimMode ? `${simHR} bpm (sim)` : 'current HR';
+  }
+}
+function drawHRHeatmap(){
+  const {ctx, w, h} = setupCv(els.hrHeatmapCanvas);
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, w, h);
+  const left = 44, right = 8, top = 10, bottom = 22;
+  const pw = w-left-right, ph = h-top-bottom;
+  // Frame
+  ctx.strokeStyle = C.axis; ctx.beginPath();
+  ctx.moveTo(left, top); ctx.lineTo(left, top+ph); ctx.lineTo(left+pw, top+ph); ctx.stroke();
+  // No model yet?
+  if (!state.hrModel){
+    ctx.fillStyle = C.axis; ctx.font = '12px system-ui';
+    ctx.fillText('Calibrate, then accumulate beats across HRs to populate the family.', left+10, top+ph/2);
+    if (els.hrHeatmapBadge) els.hrHeatmapBadge.textContent = '0 / ' + HR_BINS + ' bins';
+    return;
+  }
+  const M = state.hrModel;
+  // Determine global amplitude range so colors are calibrated.
+  // Beats are normalized so R = ±1, but template values may be mostly small
+  // with one big spike. Use percentile clipping to spread color usefully.
+  const allVals = [];
+  let coveredBins = 0;
+  for (let k=0;k<HR_BINS;k++){
+    if (M.templates[k] !== null && M.eff_n[k] > 0.5){
+      coveredBins++;
+      for (let i=0;i<BEAT_LEN;i++) allVals.push(M.templates[k][i]);
+    }
+  }
+  if (els.hrHeatmapBadge) els.hrHeatmapBadge.textContent = `${coveredBins} / ${HR_BINS} bins`;
+  if (allVals.length === 0){
+    ctx.fillStyle = C.axis; ctx.font = '12px system-ui';
+    ctx.fillText('No beats accumulated yet.', left+10, top+ph/2);
+    return;
+  }
+  allVals.sort((a,b)=>a-b);
+  // 2nd / 98th percentile to ignore single-sample spikes
+  const lo = allVals[Math.floor(allVals.length*0.02)];
+  const hi = allVals[Math.floor(allVals.length*0.98)];
+  const range = Math.max(hi - lo, 1e-3);
+  // Cell sizes: BEAT_LEN columns, HR_BINS rows. ImageData for crisp pixels.
+  const cellW = pw / BEAT_LEN;
+  const cellH = ph / HR_BINS;
+  // Y axis: HR labels (every 20 bpm)
+  ctx.fillStyle = C.axis; ctx.font = '10px system-ui';
+  for (let k=0;k<HR_BINS;k++){
+    const hr = HR_GRID[k];
+    if (hr % 20 === 0){
+      // Note: row 0 (lowest HR) at BOTTOM of plot. Convert k -> screen y.
+      const y = top + ph * (1 - (k+0.5)/HR_BINS);
+      ctx.fillText(`${hr}`, 4, y+3);
+    }
+  }
+  ctx.fillText('bpm', 4, top+8);
+  // X axis: time labels
+  ctx.fillText('-200ms', left, top+ph+14);
+  ctx.fillText('0', left + pw*BEFORE/BEAT_LEN - 4, top+ph+14);
+  ctx.fillText('+400ms', left+pw-32, top+ph+14);
+  // Vertical R-peak line at t=0
+  ctx.strokeStyle = '#3a4d76'; ctx.setLineDash([3,3]); ctx.lineWidth = 1;
+  ctx.beginPath();
+  const rx = left + pw * BEFORE/BEAT_LEN;
+  ctx.moveTo(rx, top); ctx.lineTo(rx, top+ph); ctx.stroke();
+  ctx.setLineDash([]);
+  // Draw cells
+  for (let k=0;k<HR_BINS;k++){
+    const tpl = M.templates[k];
+    const yTop = top + ph * (1 - (k+1)/HR_BINS);
+    if (tpl === null || M.eff_n[k] < 0.5){
+      // Empty bin: dark grey
+      ctx.fillStyle = 'rgb(20,28,46)';
+      ctx.fillRect(left, yTop, pw, cellH);
+      continue;
+    }
+    // Coverage-based alpha: fully populated = 1, sparse = faded
+    const alpha = Math.min(1, M.eff_n[k] / 5);
+    for (let i=0;i<BEAT_LEN;i++){
+      const v = tpl[i];
+      const t = (v - lo) / range;
+      const [r,g,b] = heatRGB(Math.max(0, Math.min(1, t)));
+      ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+      ctx.fillRect(left + i*cellW, yTop, cellW+1, cellH+1);
+    }
+  }
+  // Highlight current-HR row with a thin green outline
+  const curHR = state.hrv && state.hrv.hr ? state.hrv.hr : null;
+  if (curHR != null && curHR >= HR_MIN-2 && curHR <= HR_MAX+2){
+    const idxF = (curHR - HR_MIN) / HR_STEP;
+    const k = Math.max(0, Math.min(HR_BINS-1, Math.round(idxF)));
+    const yTop = top + ph * (1 - (k+1)/HR_BINS);
+    ctx.strokeStyle = '#34d399';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(left+0.5, yTop+0.5, pw-1, cellH);
+    ctx.fillStyle = '#34d399'; ctx.font = 'bold 10px system-ui';
+    ctx.fillText(`${curHR.toFixed(0)}`, left+pw+2, yTop+cellH/2+3);
+  }
+}
+
+// =============================================================
+//   TWIN TELEMETRY DRAW FUNCTIONS
+// =============================================================
+function drawTelemetryFrame(canvas){
+  const {ctx, w, h} = setupCv(canvas);
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = C.bg;
+  ctx.fillRect(0, 0, w, h);
+  return {ctx, w, h, left: 24, right: 4, top: 4, bottom: 12};
+}
+function teleAxes(ctx, w, h, m){
+  ctx.strokeStyle = C.axis;
+  ctx.globalAlpha = 0.4;
+  ctx.beginPath();
+  ctx.moveTo(m.left, m.top); ctx.lineTo(m.left, h-m.bottom);
+  ctx.lineTo(w-m.right, h-m.bottom);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+// F1: Live mismatch trace
+function drawMismatch(){
+  if (!els.mismatchCanvas) return;
+  const {ctx, w, h, left, right, top, bottom} = drawTelemetryFrame(els.mismatchCanvas);
+  const m = {left, right, top, bottom};
+  teleAxes(ctx, w, h, m);
+  if (state.mismatchTrace.length === 0){
+    ctx.fillStyle = C.axis; ctx.font = '10px system-ui';
+    ctx.fillText('— need accumulated beats at varied HRs', left+4, h/2);
+    return;
+  }
+  // Show last 60s
+  const tEnd = state.mismatchTrace[state.mismatchTrace.length-1].t;
+  const tStart = tEnd - 60;
+  const data = state.mismatchTrace.filter(d => d.t >= tStart);
+  const xMap = t => left + (w-left-right) * (t - tStart) / Math.max(0.1, tEnd - tStart);
+  const yMap = v => (h-bottom) - (h-bottom-top) * Math.min(1, v);
+  // Threshold line at 0.3
+  ctx.strokeStyle = '#fb7185'; ctx.setLineDash([2,3]); ctx.globalAlpha = 0.5;
+  ctx.beginPath(); ctx.moveTo(left, yMap(0.3)); ctx.lineTo(w-right, yMap(0.3)); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+  // Filled area
+  ctx.fillStyle = 'rgba(251, 113, 133, 0.18)';
+  ctx.beginPath();
+  ctx.moveTo(xMap(data[0].t), h-bottom);
+  for (const d of data) ctx.lineTo(xMap(d.t), yMap(d.v));
+  ctx.lineTo(xMap(data[data.length-1].t), h-bottom);
+  ctx.closePath(); ctx.fill();
+  // Line
+  ctx.strokeStyle = '#fb7185'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let i=0;i<data.length;i++){
+    const x = xMap(data[i].t), y = yMap(data[i].v);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  // Last value label
+  const last = data[data.length-1];
+  ctx.fillStyle = '#fb7185'; ctx.font = 'bold 10px system-ui';
+  ctx.fillText(last.v.toFixed(2), w - right - 28, top + 10);
+  // Y-axis labels
+  ctx.fillStyle = C.axis; ctx.font = '9px system-ui';
+  ctx.fillText('1.0', 2, top + 8);
+  ctx.fillText('0', 2, h - bottom - 1);
+}
+
+// CC-new1: T-wave residual trace
+function drawTwave(){
+  if (!els.twaveCanvas) return;
+  const {ctx, w, h, left, right, top, bottom} = drawTelemetryFrame(els.twaveCanvas);
+  const m = {left, right, top, bottom};
+  teleAxes(ctx, w, h, m);
+  if (state.twaveTrace.length === 0){
+    ctx.fillStyle = C.axis; ctx.font = '10px system-ui';
+    ctx.fillText('— sympathetic-load proxy from T-wave region', left+4, h/2);
+    return;
+  }
+  const tEnd = state.twaveTrace[state.twaveTrace.length-1].t;
+  const tStart = tEnd - 120;       // longer window for slow trends
+  const data = state.twaveTrace.filter(d => d.t >= tStart);
+  const xMap = t => left + (w-left-right) * (t - tStart) / Math.max(0.1, tEnd - tStart);
+  const yMap = v => (h-bottom) - (h-bottom-top) * Math.min(1, v);
+  // Smooth via short moving average for visual clarity
+  const smooth = [];
+  const win = 5;
+  for (let i=0;i<data.length;i++){
+    let s=0, n=0;
+    for (let j=Math.max(0,i-win);j<=Math.min(data.length-1,i+win);j++){ s += data[j].v; n++; }
+    smooth.push({t: data[i].t, v: s/n});
+  }
+  // Filled
+  ctx.fillStyle = 'rgba(167, 139, 250, 0.18)';
+  ctx.beginPath();
+  ctx.moveTo(xMap(smooth[0].t), h-bottom);
+  for (const d of smooth) ctx.lineTo(xMap(d.t), yMap(d.v));
+  ctx.lineTo(xMap(smooth[smooth.length-1].t), h-bottom);
+  ctx.closePath(); ctx.fill();
+  // Line
+  ctx.strokeStyle = '#a78bfa'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let i=0;i<smooth.length;i++){
+    const x = xMap(smooth[i].t), y = yMap(smooth[i].v);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  // Last value label
+  const last = smooth[smooth.length-1];
+  ctx.fillStyle = '#a78bfa'; ctx.font = 'bold 10px system-ui';
+  ctx.fillText(last.v.toFixed(2), w - right - 28, top + 10);
+  ctx.fillStyle = C.axis; ctx.font = '9px system-ui';
+  ctx.fillText('1.0', 2, top + 8);
+  ctx.fillText('0', 2, h - bottom - 1);
+}
+
+// CC-new4: state-dependent twin-fit map (HR vs residual)
+// Each beat is a point at (hr, residual). Older points fade.
+function drawFitMap(){
+  if (!els.fitMapCanvas) return;
+  const {ctx, w, h, left, right, top, bottom} = drawTelemetryFrame(els.fitMapCanvas);
+  teleAxes(ctx, w, h, {left, right, top, bottom});
+  if (state.fitMap.length < 5){
+    ctx.fillStyle = C.axis; ctx.font = '10px system-ui';
+    ctx.fillText('— accumulating: shows where twin fits well/poorly', left+4, h/2);
+    return;
+  }
+  // X: HR, Y: residual
+  const hrs = state.fitMap.map(d => d.hr);
+  const xLo = Math.max(40, Math.min(...hrs) - 5);
+  const xHi = Math.min(160, Math.max(...hrs) + 5);
+  const xMap = v => left + (w-left-right) * (v - xLo) / Math.max(1, xHi - xLo);
+  const yMap = v => (h-bottom) - (h-bottom-top) * Math.min(1, v);
+  // Faint grid
+  ctx.strokeStyle = C.axis; ctx.globalAlpha = 0.15;
+  for (let g=0.25; g<1; g+=0.25){
+    ctx.beginPath(); ctx.moveTo(left, yMap(g)); ctx.lineTo(w-right, yMap(g)); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  // Threshold band at residual=0.3
+  ctx.fillStyle = 'rgba(251, 113, 133, 0.10)';
+  ctx.fillRect(left, yMap(1), w-left-right, yMap(0.3) - yMap(1));
+  // Points: color by recency (newer = brighter green→amber→red as residual grows)
+  const tNow = state.fitMap[state.fitMap.length-1].t;
+  for (const d of state.fitMap){
+    if (d.hr < xLo || d.hr > xHi) continue;
+    const age = (tNow - d.t) / 120;          // 2 minute decay
+    const alpha = Math.max(0.15, 1 - age);
+    // Color by residual: 0 → green, 0.5 → amber, 1.0 → red
+    let r,g,b;
+    if (d.r < 0.25){ r=52; g=211; b=153; }
+    else if (d.r < 0.5){ r=251; g=191; b=36; }
+    else { r=251; g=113; b=133; }
+    ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+    ctx.beginPath(); ctx.arc(xMap(d.hr), yMap(d.r), 2.5, 0, Math.PI*2); ctx.fill();
+  }
+  // Axis labels
+  ctx.fillStyle = C.axis; ctx.font = '9px system-ui';
+  ctx.fillText(xLo.toFixed(0), left, h-2);
+  ctx.fillText(xHi.toFixed(0)+' bpm', w-right-30, h-2);
+  ctx.fillText('1.0', 2, top+8);
+  ctx.fillText('0', 2, h-bottom-1);
+}
+
+// CC-new3: Recovery-time strip (each event is a horizontal bar)
+function drawRecovery(){
+  if (!els.recoveryCanvas) return;
+  const {ctx, w, h, left, right, top, bottom} = drawTelemetryFrame(els.recoveryCanvas);
+  teleAxes(ctx, w, h, {left, right, top, bottom});
+  if (state.recoveryEvents.length === 0){
+    ctx.fillStyle = C.axis; ctx.font = '10px system-ui';
+    ctx.fillText('— no stress events recorded yet (HR rises above baseline+20%)', left+4, h/2);
+    return;
+  }
+  const ev = state.recoveryEvents.slice(-12);   // last 12 events
+  const tNow = state.e_x.length ? state.e_x[state.e_x.length-1] : 0;
+  const tStart = Math.min(...ev.map(e => e.tStart));
+  const span = Math.max(60, tNow - tStart);
+  const xMap = t => left + (w-left-right) * (t - tStart) / span;
+  const lineH = (h - top - bottom) / Math.max(ev.length, 1);
+  const maxDur = Math.max(...ev.map(e => e.dur), 30);
+  for (let i=0;i<ev.length;i++){
+    const e = ev[i];
+    const y = top + i * lineH + lineH*0.2;
+    const x1 = xMap(e.tStart), x2 = xMap(e.tEnd);
+    // Color: short recovery = green, long recovery = red
+    const ratio = Math.min(1, e.dur / maxDur);
+    const r = (52*(1-ratio) + 251*ratio)|0;
+    const g = (211*(1-ratio) + 113*ratio)|0;
+    const b = (153*(1-ratio) + 133*ratio)|0;
+    ctx.fillStyle = `rgba(${r},${g},${b},0.6)`;
+    ctx.fillRect(x1, y, Math.max(2, x2-x1), Math.max(3, lineH*0.6));
+    if (lineH > 10){
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 8px system-ui';
+      ctx.fillText(`${e.dur.toFixed(0)}s • peak ${e.peakHR.toFixed(0)} bpm`, x1+3, y+lineH*0.55);
+    }
+  }
+  ctx.fillStyle = C.axis; ctx.font = '9px system-ui';
+  const med = ev.map(e => e.dur).sort((a,b)=>a-b)[Math.floor(ev.length/2)];
+  ctx.fillText(`${ev.length} events · median ${med.toFixed(0)}s`, left+2, h-2);
+}
+
+function drawTelemetry(){
+  drawMismatch(); drawTwave(); drawFitMap(); drawRecovery();
+  // Update telemetry badge
+  if (els.telemetryBadge && state.mismatchTrace.length){
+    const recent = state.mismatchTrace.slice(-10);
+    const avg = recent.reduce((a,b)=>a+b.v,0)/recent.length;
+    els.telemetryBadge.textContent = `${avg.toFixed(2)} mismatch`;
+  }
+}
+
+// =============================================================
+//   F5 — DRIFT STRIP RENDER
+// =============================================================
+function renderDriftStrip(){
+  if (!els.driftStrip) return;
+  const ds = state.driftStatus;
+  if (!state.baseline || !state.template || ds.level === 'ok' || ds.median == null){
+    els.driftStrip.style.display = 'none';
+    return;
+  }
+  els.driftStrip.style.display = 'flex';
+  els.driftStrip.classList.toggle('stale', ds.level === 'stale');
+  if (ds.level === 'stale'){
+    els.driftDetail.innerHTML = `Sustained mismatch · median sim <b>${ds.median.toFixed(2)}</b> below ${DRIFT_SIM_THRESH} for <b>${ds.age.toFixed(0)}s</b>. Baseline likely stale.`;
+  } else {
+    els.driftDetail.innerHTML = `Median sim <b>${ds.median.toFixed(2)}</b> below ${DRIFT_SIM_THRESH} for ${ds.age.toFixed(0)}s. Watching…`;
+  }
+}
+
+// =============================================================
+//   BOOKMARK LIST RENDER
+// =============================================================
+function renderBookmarkList(){
+  if (!els.bookmarkList) return;
+  const bms = state.bookmarks;
+  if (els.bookmarkCount){
+    els.bookmarkCount.textContent = bms.length === 0 ? '— none yet' : `· ${bms.length} mark${bms.length===1?'':'s'}`;
+  }
+  if (bms.length === 0){
+    els.bookmarkList.innerHTML = '<em class="bookmark-empty">Click 🔖 Mark in the topbar to capture moments. Twin readings at that instant will be saved here.</em>';
+    return;
+  }
+  els.bookmarkList.innerHTML = '';
+  // Newest first
+  for (let idx = bms.length-1; idx >= 0; idx--){
+    const bm = bms[idx];
+    const item = document.createElement('div');
+    item.className = 'bookmark-item';
+    const s = bm.snap || {};
+    const f = (v, d=0, suffix='') => v == null ? '—' : v.toFixed(d) + suffix;
+    item.innerHTML = `
+      <div class="head">
+        <span class="time">${bm.t.toFixed(0)}s</span>
+        <span class="label">${bm.label || '(no label)'}</span>
+        <button class="del" title="Delete">×</button>
+      </div>
+      <div class="meta">
+        <span>HR <b>${f(s.hr,0)}</b></span>
+        <span>RMSSD <b>${f(s.rmssd,0)}</b></span>
+        <span>Div <b>${s.div != null ? s.div+'%' : '—'}</b></span>
+        <span>Anom <b>${f(s.anomaly,2)}</b></span>
+        <span>Mismatch <b>${f(s.mismatch,2)}</b></span>
+        <span class="match">${classifyBookmarkSnapshot(s)}</span>
+      </div>`;
+    item.addEventListener('click', () => highlightBookmark(bm));
+    item.querySelector('.del').addEventListener('click', (e) => {
+      e.stopPropagation();
+      bms.splice(idx, 1);
+      renderBookmarkList();
+    });
+    els.bookmarkList.appendChild(item);
+  }
+}
+function classifyBookmarkSnapshot(s){
+  // Translate the numbers to a human-readable "twin agrees" label
+  if (s.anomaly == null && s.mismatch == null && s.div == null) return '<i style="color:var(--muted)">no data</i>';
+  const a = s.anomaly || 0, m = s.mismatch || 0, d = (s.div || 0) / 100;
+  const score = Math.max(a, m, d);
+  if (score > 0.5) return '<i style="color:#fca5a5">twin: anomalous</i>';
+  if (score > 0.25) return '<i style="color:#fbbf24">twin: borderline</i>';
+  return '<i style="color:#86efac">twin: in-range</i>';
+}
+function highlightBookmark(bm){
+  bm._highlight = performance.now() + 5000;
+  // Pan the live plots to the bookmark for the highlight window
+  state.viewPanCenter = bm.t;
+  state.viewPanUntil = performance.now() + 5000;
+  setStatus(`🔖 ${bm.label || 'Bookmark'} at t=${bm.t.toFixed(0)}s · HR ${bm.snap?.hr?.toFixed(0) ?? '—'} · Anom ${bm.snap?.anomaly?.toFixed(2) ?? '—'} · Mismatch ${bm.snap?.mismatch?.toFixed(2) ?? '—'}`, 'twin');
+}
+
+function drawRR(xMin, xMax){
+  const {ctx, w, h} = setupCv(els.rrCanvas);
+  const ts = [], rrs = [], cls = [];
+  for (const b of state.beats){
+    if (b.t < xMin || b.t > xMax || b.rr == null) continue;
+    ts.push(b.t); rrs.push(b.rr); cls.push(b.cls);
+  }
+  // Percentile-based Y range: use 5th–95th percentile of the visible RRs,
+  // then pad. A single huge outlier (e.g. a missed beat producing a 2-second
+  // gap) no longer blows the scale and squashes every other point onto a
+  // single line. Outlier dots still render — they just sit above/below the
+  // visible plot edge, with their value still readable from the gridlines.
+  let yMin, yMax;
+  if (rrs.length >= 4){
+    const sorted = rrs.slice().sort((a,b)=>a-b);
+    const lo = sorted[Math.floor(sorted.length*0.05)];
+    const hi = sorted[Math.floor(sorted.length*0.95)];
+    const span = Math.max(hi - lo, 80);             // minimum visible span
+    yMin = Math.max(300, lo - span*0.3);
+    yMax = hi + span*0.3;
+  } else if (rrs.length){
+    yMin = Math.max(300, Math.min(...rrs)-80);
+    yMax = Math.max(...rrs)+80;
+  } else {
+    yMin = 400; yMax = 1200;
+  }
+  // Include the baseline line in the visible range (if any)
+  if (state.baseline && state.baseline.hr){
+    const refRR = 60000 / state.baseline.hr;
+    yMin = Math.min(yMin, refRR - 30);
+    yMax = Math.max(yMax, refRR + 30);
+  }
+  const m = drawAxes(ctx, w, h, xMin, xMax, yMin, yMax, 'ms');
+  if (state.baseline && state.baseline.hr){
+    const refRR = 60000 / state.baseline.hr;
+    ctx.strokeStyle = C.twin; ctx.setLineDash([4,4]); ctx.lineWidth = 1;
+    ctx.beginPath(); const y = m.yMap(refRR); ctx.moveTo(m.left, y); ctx.lineTo(m.left+m.pw, y); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  drawLine(ctx, ts, rrs, m, '#3a4d76', 1.0, 0.7);
+  drawDots(ctx, ts, rrs, cls.map(c => CLS_COLOR[c] || C.unknown), m, 3.5);
+}
+function drawPoincare(){
+  const {ctx, w, h} = setupCv(els.poincareCanvas);
+  const tNow = state.e_x.length ? state.e_x[state.e_x.length-1] : 0;
+  const tCut = tNow - 300;
+  const beats = state.beats.filter(b => b.t >= tCut && b.rr != null);
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, w, h);
+  els.poincareBadge.textContent = `${beats.length} pts`;
+  if (beats.length < 5){ ctx.fillStyle = C.axis; ctx.font = '12px system-ui'; ctx.fillText('Collecting RR pairs...', 14, h/2); return; }
+  const rrs = beats.map(b => b.rr);
+  const mn = Math.min(...rrs), mx = Math.max(...rrs);
+  const span = Math.max(40, mx-mn);
+  const cx = (mn+mx)/2;
+  const lo = cx - span*0.7, hi = cx + span*0.7;
+  const m = drawAxes(ctx, w, h, lo, hi, lo, hi, 'ms');
+  // identity
+  ctx.strokeStyle = '#3a4d76'; ctx.setLineDash([3,3]); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(m.xMap(lo), m.yMap(lo)); ctx.lineTo(m.xMap(hi), m.yMap(hi)); ctx.stroke();
+  ctx.setLineDash([]);
+  // SD1/SD2 ellipse
+  const stats = computeHRVTime(rrs);
+  if (stats && isFinite(stats.sd1) && isFinite(stats.sd2) && stats.sd1 > 0){
+    const sx = m.pw / (hi-lo);
+    ctx.save();
+    ctx.translate(m.xMap(stats.meanRR), m.yMap(stats.meanRR));
+    ctx.rotate(-Math.PI/4);
+    ctx.strokeStyle = C.twin; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, stats.sd2*sx, stats.sd1*sx, 0, 0, 2*Math.PI);
+    ctx.stroke();
+    ctx.restore();
+    // Annotation
+    ctx.fillStyle = C.twin; ctx.font = '11px system-ui';
+    ctx.fillText(`SD1=${stats.sd1.toFixed(0)} SD2=${stats.sd2.toFixed(0)}`, m.left+6, m.top+12);
+  }
+  // points (RR_n, RR_n+1) with class color
+  for (let i=1;i<beats.length;i++){
+    const a = beats[i-1].rr, b = beats[i].rr;
+    ctx.fillStyle = CLS_COLOR[beats[i].cls] || C.unknown;
+    ctx.beginPath(); ctx.arc(m.xMap(a), m.yMap(b), 2.2, 0, Math.PI*2); ctx.fill();
+  }
+}
+function drawSpectrogram(){
+  const {ctx, w, h} = setupCv(els.spectrogramCanvas);
+  const cols = state.spectrogram.columns;
+  const fbins = state.spectrogram.freqBins;
+  const fmax = state.spectrogram.fmax;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, w, h);
+  els.specBadge.textContent = `${cols.length} cols`;
+  const left = 36, right = 6, top = 8, bottom = 22;
+  const pw = w-left-right, ph = h-top-bottom;
+  // Y axis: freq labels
+  ctx.fillStyle = C.axis; ctx.font = '10px system-ui';
+  ctx.fillText('0.5 Hz', 2, top+8);
+  ctx.fillText('0.4', 2, top + ph*(1-0.4/fmax)|0);
+  ctx.fillText('0.15', 2, top + ph*(1-0.15/fmax)|0);
+  ctx.fillText('0.04', 2, top + ph*(1-0.04/fmax)|0);
+  ctx.fillText('0', 2, top+ph);
+  // Frame
+  ctx.strokeStyle = C.axis; ctx.beginPath();
+  ctx.moveTo(left, top); ctx.lineTo(left, top+ph); ctx.lineTo(left+pw, top+ph); ctx.stroke();
+  if (!cols.length){ ctx.fillStyle = C.axis; ctx.fillText('Need ≥ 90 s of beats for first column...', left+10, top+ph/2); return; }
+  // Draw columns left to right
+  const N = cols.length;
+  const colW = Math.max(2, pw / state.spectrogram.maxCols);
+  // Find max for normalization (tracked over time so colors stay stable)
+  let mxGlob = state.spectrogram.maxObserved || 1;
+  for (const c of cols) for (let k=0;k<fbins;k++) if (c.mags[k] > mxGlob) mxGlob = c.mags[k];
+  state.spectrogram.maxObserved = mxGlob;
+  const startX = left + pw - N*colW;
+  for (let i=0;i<N;i++){
+    const c = cols[i];
+    const x = startX + i*colW;
+    for (let k=0;k<fbins;k++){
+      const t = c.mags[k] / mxGlob;
+      const [r,g,b] = heatRGB(t);
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      // bin k spans freq [k*fmax/fbins, (k+1)*fmax/fbins]; lower freq at bottom
+      const yTop = top + ph * (1 - (k+1)/fbins);
+      const yBot = top + ph * (1 - k/fbins);
+      ctx.fillRect(x, yTop, colW, yBot-yTop);
+    }
+  }
+  // LF/HF dividers (horizontal lines)
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.setLineDash([2,3]); ctx.lineWidth = 1;
+  ctx.beginPath();
+  const yLF = top + ph*(1 - 0.04/fmax);
+  const yLFH = top + ph*(1 - 0.15/fmax);
+  const yHF = top + ph*(1 - 0.4/fmax);
+  ctx.moveTo(left, yLF); ctx.lineTo(left+pw, yLF);
+  ctx.moveTo(left, yLFH); ctx.lineTo(left+pw, yLFH);
+  ctx.moveTo(left, yHF); ctx.lineTo(left+pw, yHF);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+function drawSingleTrend(canvas, t, v, color, baseline, unit){
+  const {ctx, w, h} = setupCv(canvas);
+  let xMin = 0, xMax = 1;
+  if (t.length){ xMin = t[0]; xMax = t[t.length-1]; if (xMax-xMin < 1) xMax = xMin+1; }
+  // Auto-fit y from data + baseline reference (if any), with sensible padding.
+  let yMin, yMax;
+  if (v.length){
+    const mn = Math.min(...v), mx = Math.max(...v);
+    const span = Math.max(mx-mn, 5);
+    yMin = mn - span*0.15;
+    yMax = mx + span*0.15;
+    if (baseline != null){
+      yMin = Math.min(yMin, baseline - span*0.1);
+      yMax = Math.max(yMax, baseline + span*0.1);
+    }
+  } else {
+    yMin = 0; yMax = 100;
+  }
+  const m = drawAxes(ctx, w, h, xMin, xMax, yMin, yMax, unit);
+  // Baseline reference line
+  if (baseline != null && yMax > yMin){
+    ctx.strokeStyle = color; ctx.setLineDash([3,3]); ctx.lineWidth = 1; ctx.globalAlpha = 0.5;
+    ctx.beginPath(); const y = m.yMap(baseline);
+    ctx.moveTo(m.left, y); ctx.lineTo(m.left+m.pw, y);
+    ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+  }
+  drawLine(ctx, t, v, m, color, 1.6);
+  // Last point as marker
+  if (t.length){
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(m.xMap(t[t.length-1]), m.yMap(v[v.length-1]), 3, 0, Math.PI*2); ctx.fill();
+  }
+  // Bookmarks as thin amber verticals
+  for (const bm of state.bookmarks){
+    if (bm.t < xMin || bm.t > xMax) continue;
+    ctx.strokeStyle = bm.color || '#fbbf24';
+    ctx.globalAlpha = 0.65;
+    ctx.lineWidth = 1;
+    const x = m.xMap(bm.t);
+    ctx.beginPath();
+    ctx.moveTo(x, m.top);
+    ctx.lineTo(x, m.top + (yMax > yMin ? (h - 22) : (h - 30)));
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+}
+function drawTrendHR(){
+  drawSingleTrend(els.trendHRCanvas, state.trendHRtimes, state.trendHRvalues, C.rpeak, state.baseline ? state.baseline.hr : null, 'bpm');
+  if (els.hrTrendBadge && state.trendHRvalues.length){
+    els.hrTrendBadge.textContent = `${state.trendHRvalues[state.trendHRvalues.length-1].toFixed(0)} bpm`;
+  }
+}
+function drawTrendRMSSD(){
+  drawSingleTrend(els.trendRMSSDCanvas, state.trendRMSSDtimes, state.trendRMSSDvalues, C.twin, state.baseline ? state.baseline.rmssd : null, 'ms');
+  if (els.rmssdTrendBadge && state.trendRMSSDvalues.length){
+    els.rmssdTrendBadge.textContent = `${state.trendRMSSDvalues[state.trendRMSSDvalues.length-1].toFixed(0)} ms`;
+  }
+}
+function drawPat(xMin, xMax){
+  const {ctx, w, h} = setupCv(els.patCanvas);
+  const win = filterWin(state.patTimes, state.patValues, xMin);
+  const [yMin, yMax] = win.v.length ? [Math.max(0, Math.min(...win.v)-30), Math.max(...win.v)+30] : [50, 400];
+  const m = drawAxes(ctx, w, h, xMin, xMax, yMin, yMax, 'ms');
+  drawLine(ctx, win.t, win.v, m, C.pat, 1.8);
+  drawDots(ctx, win.t, win.v, win.t.map(()=>C.pat), m, 3);
+}
+
+// ============== UI ==============
+function fmtN(v, d=0, fb='—'){ if (v == null || !isFinite(v)) return fb; return Number(v).toFixed(d); }
+function updateRates(){
+  const now = performance.now();
+  if (now - state.lastRateTs >= 1000){
+    const tc = state.save_t_x.length, ec = state.save_e_x.length;
+    els.ecgBadge.textContent = `${ec - state.eCountLast} sps`;
+    els.triboBadge.textContent = `${tc - state.tCountLast} sps`;
+    state.tCountLast = tc; state.eCountLast = ec; state.lastRateTs = now;
+  }
+}
+function syncParams(){
+  els.rpThreshVal.textContent = Number(els.rpThresh.value).toFixed(2);
+  els.rpRefractVal.textContent = Number(els.rpRefract.value).toFixed(2);
+  els.twaveWinVal.textContent = Number(els.twaveWin.value).toFixed(2);
+  els.twaveRatioVal.textContent = Number(els.twaveRatio.value).toFixed(2);
+  els.ftSlopeThreshVal.textContent = Number(els.ftSlopeThresh.value).toFixed(2);
+  els.ftPeakHiVal.textContent = Number(els.ftPeakHi.value).toFixed(2);
+  els.pttOffsetVal.textContent = String(els.pttOffset.value);
+  els.morphCutoffVal.textContent = Number(els.morphCutoff.value).toFixed(2);
+  els.prematureCutoffVal.textContent = Number(els.prematureCutoff.value).toFixed(2);
+  rpeak.thresholdFactor = Number(els.rpThresh.value);
+  rpeak.refractoryS = Number(els.rpRefract.value);
+  rpeak.twaveWindowS = Number(els.twaveWin.value);
+  rpeak.twaveAmpRatio = Number(els.twaveRatio.value);
+  foot.slopeThresh = Number(els.ftSlopeThresh.value);
+  foot.peakHiS = Number(els.ftPeakHi.value);
+  ptt.minPttMs = Number(els.pttMin.value);
+  ptt.maxPttMs = Number(els.pttMax.value);
+  ptt.offsetMs = Number(els.pttOffset.value);
+  state.filterEnabled = els.filterEnable.checked;
+}
+function setDelta(el, v, base, lowerBetter=false, floor=null){
+  if (v == null || base == null){ el.textContent = '—'; el.className = 'md flat'; return; }
+  const d = v - base;
+  const pct = (d / base) * 100;
+  const ar = d > 0 ? '↑' : d < 0 ? '↓' : '·';
+  el.textContent = `${ar}${Math.abs(pct).toFixed(0)}%`;
+  // "Bad" coloring uses an absolute floor on top of the percentage so very
+  // small absolute swings on a tiny baseline don't paint the chip red.
+  // Default floor: 10% AND at least the optional absolute floor.
+  const minPctSignificant = 10;
+  const minAbsSignificant = (floor != null) ? floor : 0;
+  const isElevated = d > 0;
+  const isBad = lowerBetter ? isElevated : !isElevated;
+  if (Math.abs(pct) < 5) el.className = 'md flat';
+  else if (Math.abs(pct) >= minPctSignificant && Math.abs(d) >= minAbsSignificant){
+    el.className = 'md ' + (isBad ? 'up' : 'dn');
+  } else {
+    el.className = 'md flat';
+  }
+}
+function renderMetrics(){
+  const h = state.hrv, b = state.baseline;
+  els.hrValue.textContent = fmtN(h.hr, 0);
+  els.sdnnValue.textContent = fmtN(h.sdnn, 0);
+  els.rmssdValue.textContent = fmtN(h.rmssd, 0);
+  els.pnn50Value.textContent = fmtN(h.pnn50, 1);
+  els.lfhfValue.textContent = fmtN(h.lfHf, 2);
+  els.sdvalues.textContent = `${fmtN(h.sd1,0)}·${fmtN(h.sd2,0)}`;
+  setDelta(els.hrDelta, h.hr, b ? b.hr : null, false, 5);          // 5 bpm floor
+  setDelta(els.sdnnDelta, h.sdnn, b ? b.sdnn : null, true, 25);    // 25 ms floor
+  setDelta(els.rmssdDelta, h.rmssd, b ? b.rmssd : null, true, 20); // 20 ms floor
+  setDelta(els.pnn50Delta, h.pnn50, b ? b.pnn50 : null, true, 10); // 10 % floor
+  if (h.lfHf != null){
+    els.lfhfDelta.textContent = h.lfHf > 2.5 ? 'sympatic' : h.lfHf < 0.8 ? 'parasymp' : 'balanced';
+    els.lfhfDelta.className = 'md flat';
+  }
+  if (state.twinDivergence != null){
+    els.divergenceValue.textContent = `${state.twinDivergence}%`;
+    const lvl = state.twinDivergence < 25 ? 'low' : state.twinDivergence < 55 ? 'mid' : 'high';
+    els.divergenceDelta.textContent = lvl;
+    els.divergenceDelta.className = 'md flat';
+  }
+  // Anomaly chip: average and max over the last 30 beats
+  const recentAnom = state.beats.slice(-30).map(b => b.anomaly).filter(x => x != null);
+  if (recentAnom.length >= 4){
+    const avg = recentAnom.reduce((a,b)=>a+b,0) / recentAnom.length;
+    const mx = Math.max(...recentAnom);
+    els.anomalyValue.textContent = avg.toFixed(2);
+    els.anomalyDetail.textContent = `max ${mx.toFixed(2)}`;
+    // Color: green (calm) → amber (mid) → red (high)
+    const cls = avg < 0.25 ? 'dn' : avg > 0.50 ? 'up' : 'flat';
+    els.anomalyDetail.className = `md ${cls}`;
+  } else {
+    els.anomalyValue.textContent = '—';
+    els.anomalyDetail.textContent = 'avg / max';
+    els.anomalyDetail.className = 'md flat';
+  }
+  if (state.patValues.length){
+    const last = state.patValues[state.patValues.length-1];
+    const lN = state.patValues.slice(-10);
+    const avg = lN.reduce((a,b)=>a+b,0)/lN.length;
+    els.patValue.textContent = `${last.toFixed(0)}`;
+    els.patDelta.textContent = `avg ${avg.toFixed(0)}`;
+    els.patBadge.textContent = `${avg.toFixed(0)} ms avg`;
+  }
+  els.templateBadge.textContent = `${state.templateCount} beats`;
+  els.rrBadge.textContent = `${state.beats.filter(b => b.rr != null).length} RR`;
+  const q = state.signalQuality;
+  els.qualityBadge.className = `badge q ${q}`;
+  els.qualityBadge.textContent = q === 'good' ? 'signal: good' : q === 'marginal' ? 'signal: marginal' : q === 'poor' ? 'signal: poor' : 'signal: —';
+}
+function renderTwinHero(){
+  if (!state.isConnected && !state.beats.length){
+    els.twinOrb.className = 'twin-orb idle';
+    els.twinState.textContent = 'Awaiting signal';
+    els.twinDivergence.textContent = 'Connect, then calibrate at rest.';
+    return;
+  }
+  if (state.baselineMode){
+    els.twinOrb.className = 'twin-orb';
+    const dur = Number(els.baselineDur.value) || 60;
+    const elapsed = (state.e_x[state.e_x.length-1] || 0) - state.baselineStart;
+    const remain = Math.max(0, dur-elapsed);
+    els.twinState.textContent = 'Calibrating';
+    els.twinDivergence.innerHTML = `<b>${remain.toFixed(0)}s</b> · ${state.templateCount} beats`;
+    if (remain <= 0) finalizeCalibration();
+    return;
+  }
+  if (!state.baseline){
+    els.twinOrb.className = 'twin-orb idle';
+    els.twinState.textContent = 'No baseline';
+    els.twinDivergence.textContent = 'Tap Calibrate at rest.';
+    return;
+  }
+  const tNow = state.e_x.length ? state.e_x[state.e_x.length-1] : 0;
+  const inWarmup = tNow - state.baseline.lockedAt < 6;
+  const s = state.twinState;
+  els.twinOrb.className = `twin-orb ${orbClass(s)}`;
+  els.twinState.textContent = inWarmup ? 'Stabilizing…' : stateLabel(s);
+  const div = state.twinDivergence;
+  els.twinDivergence.innerHTML = `Div <b>${div != null ? div+'%' : '—'}</b> · ${state.signalQuality}`;
+}
+function renderBeatStrip(){
+  const last = state.beats.slice(-80);
+  els.beatStrip.innerHTML = last.length
+    ? last.map(b => `<div class="beat-pip ${b.cls}" title="${b.cls}${b.rr ? ' · RR ' + b.rr.toFixed(0) + 'ms' : ''}${b.sim != null ? ' · sim ' + b.sim.toFixed(2) : ''}"></div>`).join('')
+    : '<span style="color:var(--muted);font-size:.85rem">No beats yet</span>';
+}
+function renderInsights(){
+  const items = [];
+  const h = state.hrv, b = state.baseline;
+  if (state.signalQuality === 'poor'){
+    items.push({k:'alert', t:'Signal quality is <b>poor</b> — beats are being rejected. Check electrode contact.'});
+  } else if (state.signalQuality === 'marginal'){
+    items.push({k:'warn', t:'Signal quality is <b>marginal</b> — interpret cautiously.'});
+  }
+  if (!state.baseline){
+    items.push({k:'', t:'No baseline twin established yet — calibrate to enable comparison.'});
+  } else {
+    if (h.hr != null && b.hr != null){
+      const dr = relDiff(h.hr, b.hr)*100;
+      if (dr > 20) items.push({k:'warn', t:`HR is <b>${dr.toFixed(0)}%</b> above baseline.`});
+      else if (dr < -15) items.push({k:'', t:`HR is <b>${(-dr).toFixed(0)}%</b> below baseline (deeply rested).`});
+      else items.push({k:'good', t:`HR <b>${h.hr.toFixed(0)} bpm</b> — within normal range.`});
+    }
+    if (h.rmssd != null && b.rmssd != null){
+      const dr = relDiff(h.rmssd, b.rmssd)*100;
+      if (dr < -30) items.push({k:'warn', t:`RMSSD <b>${dr.toFixed(0)}%</b> vs baseline — vagal tone reduced.`});
+      else if (dr > 25) items.push({k:'good', t:`RMSSD <b>+${dr.toFixed(0)}%</b> vs baseline — strong parasympathetic activity.`});
+    }
+    if (h.lfHf != null){
+      if (h.lfHf > 3) items.push({k:'warn', t:`LF/HF <b>${h.lfHf.toFixed(2)}</b> — sympathetic dominance.`});
+      else if (h.lfHf < 0.7) items.push({k:'', t:`LF/HF <b>${h.lfHf.toFixed(2)}</b> — parasympathetic dominance.`});
+    }
+    const last = state.beats.slice(-60);
+    if (last.length >= 30){
+      const pvc = last.filter(b => b.cls === 'pvc').length;
+      const pac = last.filter(b => b.cls === 'pac').length;
+      if (pvc > 0) items.push({k: pvc >= 3 ? 'alert' : 'warn', t:`<b>${pvc}</b> wide-complex premature beat${pvc>1?'s':''} in last ${last.length} (suggestive of PVC).`});
+      if (pac > 0) items.push({k: pac >= 4 ? 'warn' : '', t:`<b>${pac}</b> narrow premature beat${pac>1?'s':''} in last ${last.length} (suggestive of PAC).`});
+    }
+    const sims = state.beats.slice(-30).map(x => x.sim).filter(x => x != null);
+    if (sims.length >= 10){
+      const ms = sims.reduce((a,b)=>a+b,0)/sims.length;
+      if (ms < 0.85) items.push({k:'warn', t:`Beat morphology drifting from template (avg sim <b>${ms.toFixed(2)}</b>).`});
+      else if (ms > 0.95) items.push({k:'good', t:`Beat shape highly consistent with template (sim <b>${ms.toFixed(2)}</b>).`});
+    }
+  }
+  if (!items.length) items.push({k:'', t:'Collecting more data...'});
+  els.insights.innerHTML = items.map(i => `<li class="${i.k}">${i.t}</li>`).join('');
+}
+
+// ============== ANIMATE ==============
+function animate(){
+  syncParams();
+  updateRates();
+  const now = performance.now();
+  // SQI throttled to ~3 Hz
+  if (now - state.lastSQICalc > 300){ computeSQI(); state.lastSQICalc = now; }
+  // R-peak detection: throttle to 5 Hz. Sorting + MAD on a 4 s window every
+  // animation frame (~60 Hz) was starving the BLE event loop, causing
+  // GATT timeouts and "Cannot retrieve services" errors. 5 Hz is enough —
+  // R-peaks come at most ~3 Hz physiologically.
+  if (state.e_x.length > 50 && now - state.lastDetectCalc > 200){
+    rpeak.detect(state.e_x, state.e_y);
+    if (state.t_x.length > 50 && state.rPeaksT.length) foot.detect(state.t_x, state.t_y, state.rPeaksT);
+    if (state.rPeaksT.length && state.feetT.length) ptt.compute(state.rPeaksT, state.feetT);
+    processNewBeats();
+    state.lastDetectCalc = now;
+  }
+  // HRV time
+  if (now - state.lastHRVCalc > 1500){
+    const rrAll = [];
+    const recR = state.rPeaksT.slice(-120);
+    for (let i=1;i<recR.length;i++){ const rr = (recR[i]-recR[i-1])*1000; if (rr > 300 && rr < 2000) rrAll.push(rr); }
+    const hrv = computeHRVTime(rrAll);
+    if (hrv){
+      state.hrv.hr = hrv.hr; state.hrv.sdnn = hrv.sdnn; state.hrv.rmssd = hrv.rmssd; state.hrv.pnn50 = hrv.pnn50;
+      state.hrv.sd1 = hrv.sd1; state.hrv.sd2 = hrv.sd2;
+      const tNow = state.e_x.length ? state.e_x[state.e_x.length-1] : 0;
+      state.trendHRtimes.push(tNow); state.trendHRvalues.push(hrv.hr);
+      state.trendRMSSDtimes.push(tNow); state.trendRMSSDvalues.push(hrv.rmssd);
+      while (state.trendHRtimes.length && state.trendHRtimes[0] < tNow-600){ state.trendHRtimes.shift(); state.trendHRvalues.shift(); }
+      while (state.trendRMSSDtimes.length && state.trendRMSSDtimes[0] < tNow-600){ state.trendRMSSDtimes.shift(); state.trendRMSSDvalues.shift(); }
+    }
+    state.lastHRVCalc = now;
+  }
+  // HRV freq
+  if (now - state.lastFreqHRVCalc > 6000){
+    const fr = computeHRVFreq(state.rPeaksT);
+    if (fr){ state.hrv.lf = fr.lf; state.hrv.hf = fr.hf; state.hrv.lfHf = fr.lfHf; }
+    if (now - state.spectrogram.lastCalc > 6000){
+      const col = computeSpectrogramColumn();
+      if (col){
+        state.spectrogram.columns.push(col);
+        if (state.spectrogram.columns.length > state.spectrogram.maxCols) state.spectrogram.columns.shift();
+      }
+      state.spectrogram.lastCalc = now;
+    }
+    state.lastFreqHRVCalc = now;
+  }
+  // Twin
+  state.twinDivergence = computeDivergence();
+  state.twinState = inferState();
+  logStateChange();
+  renderMetrics();
+  renderTwinHero();
+  if (now - state.lastInsightsRefresh > 2000){
+    renderBeatStrip(); renderInsights();
+    updateDriftStatus();
+    updateRecoveryDetector();
+    renderDriftStrip();
+    renderBookmarkList();
+    state.lastInsightsRefresh = now;
+  }
+  // Twin autosave: every 30s if dirty
+  if (state.twinDirty && now - state.lastTwinAutoSave > 30000){
+    if (saveTwinToLocalStorage(state.currentTwinName)){
+      state.twinDirty = false;
+      state.lastTwinAutoSave = now;
+    }
+  }
+  // Plots: throttle to ~20 Hz to free the main thread for BLE callbacks.
+  // 20 Hz is way above what the eye perceives as smooth on time-series data.
+  if (now - state.lastPlotDraw > 50){
+    const lastT = state.e_x.length ? state.e_x[state.e_x.length-1] : 0;
+    let xMax = Math.max(lastT, 1);
+    const wSec = clamp(Number(els.windowSec.value) || 6, 1, 60);
+    let xMin = Math.max(0, xMax-wSec);
+    // If a bookmark was clicked, center the view on it for ~5s
+    if (state.viewPanUntil && now < state.viewPanUntil && state.viewPanCenter != null){
+      const c = state.viewPanCenter;
+      xMin = Math.max(0, c - wSec/2);
+      xMax = c + wSec/2;
+    }
+    drawEcg(xMin, xMax+0.3);
+    drawTemplate();
+    drawHRHeatmap();
+    drawTelemetry();
+    drawRR(Math.max(0, xMax - Math.max(30, wSec*4)), xMax+0.3);
+    drawPoincare();
+    drawSpectrogram();
+    drawTrendHR();
+    drawTrendRMSSD();
+    drawPat(xMin, xMax+0.3);
+    drawTribo(xMin, xMax+0.3);
+    state.lastPlotDraw = now;
+  }
+  state.animationHandle = requestAnimationFrame(animate);
+}
+
+// ============== LEAD MODE PRESETS ==============
+// Different lead positions produce different signal characteristics. A single
+// set of parameters cannot serve both well, so we ship two presets plus a
+// freeform Custom mode.
+//
+// CHEST: large QRS amplitude (R typically thousands of ADC), R dominates,
+// baseline is relatively stable, T-waves modest relative to R. Tolerates
+// high signal energy. Allows looser SQI and less aggressive T-wave rejection.
+//
+// FINGERS: small QRS amplitude (R typically tens to hundreds of ADC),
+// constant micro-motion, high relative noise, drift-prone, T-waves
+// frequently comparable to R. Needs stricter SQI and more aggressive T-wave
+// rejection. Lower morphology cutoff because beat-to-beat shape varies more.
+const LEAD_PRESETS = {
+  chest: {
+    rpThresh: 0.45,         // peak threshold - chest QRS towers above baseline
+    rpRefract: 0.36,        // standard refractory
+    twaveWin: 0.40,         // T-wave search window
+    twaveRatio: 0.55,       // chest T-waves are usually <55% of R
+    morphCutoff: 0.85,      // strict morphology - chest signals are clean
+    prematureCutoff: 0.85,
+    hpCut: 0.5,
+    lpCut: 35,
+    sqiSpikeRatePoor: 0.06,
+    sqiSpikeRateMarginal: 0.025,
+    sqiDriftPoor: 5.0,
+    sqiDriftMarginal: 2.5,
+    sqiSpikeKMul: 6,        // multiplier on jumpStd for spike threshold
+    sqiSpikePtpFrac: 0.40,
+  },
+  fingers: {
+    rpThresh: 0.55,         // higher threshold - relatively noisier
+    rpRefract: 0.38,        // slightly longer; fingers have slower-rising T sometimes
+    twaveWin: 0.45,         // longer T-wave search
+    twaveRatio: 0.70,       // finger T-waves can be 70% of R
+    morphCutoff: 0.78,      // looser - more beat-to-beat shape variation
+    prematureCutoff: 0.82,
+    hpCut: 0.7,             // higher HP to remove finger movement drift
+    lpCut: 30,              // lower LP - cuts more high-freq finger noise
+    sqiSpikeRatePoor: 0.04,
+    sqiSpikeRateMarginal: 0.015,
+    sqiDriftPoor: 4.0,
+    sqiDriftMarginal: 2.0,
+    sqiSpikeKMul: 5,
+    sqiSpikePtpFrac: 0.30,
+  },
+};
+
+let currentLeadMode = 'chest';   // active mode; sqi reads its tunables from here
+
+function applyLeadPreset(mode){
+  if (mode === 'custom'){
+    currentLeadMode = 'custom';
+    updateLeadButtons();
+    setStatus('Custom mode · settings unchanged. Edit any control to fine-tune.', 'twin');
+    return;
+  }
+  const p = LEAD_PRESETS[mode];
+  if (!p) return;
+  currentLeadMode = mode;
+  // Push into the UI controls (which feed back through syncParams to the engine)
+  els.rpThresh.value = p.rpThresh;
+  els.rpRefract.value = p.rpRefract;
+  els.twaveWin.value = p.twaveWin;
+  els.twaveRatio.value = p.twaveRatio;
+  els.morphCutoff.value = p.morphCutoff;
+  els.prematureCutoff.value = p.prematureCutoff;
+  els.hpCut.value = p.hpCut;
+  els.lpCut.value = p.lpCut;
+  // Reconfigure biquads with new cutoffs
+  configFilters();
+  // Sync display values + push into detector classes
+  syncParams();
+  updateLeadButtons();
+  setStatus(`Lead mode: ${mode === 'chest' ? 'Chest' : 'Fingers'} · presets applied.`, 'ok');
+}
+
+function updateLeadButtons(){
+  els.leadChestBtn.classList.toggle('active', currentLeadMode === 'chest');
+  els.leadFingersBtn.classList.toggle('active', currentLeadMode === 'fingers');
+  els.leadCustomBtn.classList.toggle('active', currentLeadMode === 'custom');
+}
+
+// Switch to Custom mode whenever the user manually edits a preset-controlled knob
+function watchManualOverrides(){
+  const presetIds = ['rpThresh','rpRefract','twaveWin','twaveRatio','morphCutoff','prematureCutoff','hpCut','lpCut'];
+  for (const id of presetIds){
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', () => {
+      if (currentLeadMode !== 'custom'){
+        currentLeadMode = 'custom';
+        updateLeadButtons();
+      }
+    });
+  }
+}
+
+// ============== INIT ==============
+function init(){
+  ['rpThresh','rpRefract','twaveWin','twaveRatio','ftSlopeThresh','ftPeakHi','pttOffset','morphCutoff','prematureCutoff'].forEach(id => document.getElementById(id).addEventListener('input', syncParams));
+  els.hpCut.addEventListener('change', configFilters);
+  els.lpCut.addEventListener('change', configFilters);
+  els.filterEnable.addEventListener('change', () => { state.filterEnabled = els.filterEnable.checked; ecgHP.reset(); ecgLP.reset(); });
+  els.connectBtn.addEventListener('click', connectBle);
+  els.reconnectBtn.addEventListener('click', reconnectLast);
+  els.disconnectBtn.addEventListener('click', disconnectBle);
+  els.clearBtn.addEventListener('click', clearData);
+  els.exportBtn.addEventListener('click', exportCsv);
+  els.reportBtn.addEventListener('click', showReport);
+  els.downloadReportBtn.addEventListener('click', downloadReport);
+  els.closeReportBtn.addEventListener('click', () => els.reportCard.style.display = 'none');
+  els.calibrateBtn.addEventListener('click', startCalibration);
+  els.resetTwinBtn.addEventListener('click', resetTwin);
+  els.leadChestBtn.addEventListener('click', () => applyLeadPreset('chest'));
+  els.leadFingersBtn.addEventListener('click', () => applyLeadPreset('fingers'));
+  els.leadCustomBtn.addEventListener('click', () => applyLeadPreset('custom'));
+  els.motionAdaptBtn.addEventListener('click', () => {
+    state.motionAdaptive = !state.motionAdaptive;
+    els.motionAdaptBtn.classList.toggle('active', state.motionAdaptive);
+    els.motionAdaptBtn.textContent = state.motionAdaptive ? 'Motion: on' : 'Motion: off';
+    if (state.motionAdaptive){
+      // Seed the local template from the most recent normal-looking beats
+      // so it doesn't take 12 beats to start working
+      const seed = state.beats.slice(-LOCAL_TPL_N).filter(b => b.sim !== null && b.sim > 0.7).map(b => b.v);
+      state.localTemplateBeats = seed;
+      if (seed.length > 0){
+        const tpl = new Array(BEAT_LEN).fill(0);
+        for (const b of seed) for (let i=0;i<BEAT_LEN;i++) tpl[i] += b[i];
+        for (let i=0;i<BEAT_LEN;i++) tpl[i] /= seed.length;
+        state.localTemplate = tpl;
+      }
+      setStatus(`Motion-adaptive ON · seeded with ${seed.length} recent beats. Will distinguish lead drift from real ectopy.`, 'twin');
+    } else {
+      resetLocalTemplate();
+      setStatus('Motion-adaptive OFF · using global template only for ectopic detection.', 'warn');
+    }
+  });
+  // Bookmark button
+  els.markBtn.addEventListener('click', () => addBookmark());
+  els.driftRecalBtn.addEventListener('click', () => startCalibration());
+  // Simulation slider: dragging changes which HR the predicted beat shows.
+  // Value 0 = "live" (use current HR). Click on the value to reset.
+  els.simHRSlider.addEventListener('input', () => {
+    const v = Number(els.simHRSlider.value);
+    els.simHRVal.textContent = v > 0 ? `${v} bpm` : 'live';
+  });
+  // Right-click or double-click to reset
+  els.simHRVal.addEventListener('click', () => {
+    els.simHRSlider.value = 0;
+    els.simHRVal.textContent = 'live';
+  });
+  // Twin profile menu
+  els.twinMenuBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const open = els.twinMenuDropdown.style.display !== 'none';
+    if (open){ els.twinMenuDropdown.style.display = 'none'; }
+    else { renderTwinMenu(); els.twinMenuDropdown.style.display = 'block'; }
+  });
+  document.addEventListener('click', (e) => {
+    if (!els.twinMenuDropdown.contains(e.target) && e.target !== els.twinMenuBtn){
+      els.twinMenuDropdown.style.display = 'none';
+    }
+  });
+  els.twinSaveBtn.addEventListener('click', () => {
+    if (saveTwinToLocalStorage(state.currentTwinName)){
+      state.twinDirty = false;
+      setStatus(`Twin saved as "${state.currentTwinName}".`, 'ok');
+      renderTwinMenu();
+    } else {
+      setStatus('Nothing to save — calibrate first.', 'warn');
+    }
+  });
+  els.twinSaveAsBtn.addEventListener('click', () => {
+    const name = prompt('Save twin as (e.g. "robert-chest-resting"):', state.currentTwinName);
+    if (!name) return;
+    state.currentTwinName = name.replace(/[^A-Za-z0-9_\-]/g, '_').slice(0, 60) || 'default';
+    if (saveTwinToLocalStorage(state.currentTwinName)){
+      state.twinDirty = false;
+      setStatus(`Twin saved as "${state.currentTwinName}".`, 'ok');
+      els.twinMenuCurrentName.textContent = state.currentTwinName;
+      renderTwinMenu();
+    } else {
+      setStatus('Nothing to save — calibrate first.', 'warn');
+    }
+  });
+  els.twinExportBtn.addEventListener('click', () => exportTwinFile());
+  els.twinImportBtn.addEventListener('click', () => els.twinImportFile.click());
+  els.twinImportFile.addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (f){ importTwinFile(f); state.twinDirty = false; }
+    e.target.value = '';
+    els.twinMenuDropdown.style.display = 'none';
+  });
+  els.twinImportCsvBtn.addEventListener('click', () => els.twinImportCsvFile.click());
+  els.twinImportCsvFile.addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (f){ importTwinFromCsv(f); state.twinDirty = false; }
+    e.target.value = '';
+    els.twinMenuDropdown.style.display = 'none';
+  });
+  watchManualOverrides();
+  const toggleBtn = document.getElementById('toggleSideBtn');
+  if (toggleBtn) toggleBtn.addEventListener('click', () => document.body.classList.toggle('collapsed'));
+  // Apply the default lead preset (Chest) so all knobs are set consistently
+  // before syncParams pushes them into the detector classes.
+  applyLeadPreset('chest');
+  syncParams();
+  setConnUI(false);
+  refreshReconnect();
+  // Try to load the last-used twin profile
+  if (loadTwinFromLocalStorage()){
+    setStatus(`Loaded twin profile "${state.currentTwinName}".`, 'ok');
+  }
+  els.twinMenuCurrentName.textContent = state.currentTwinName;
+  animate();
+}
+init();
+</script>
+</body>
+</html>
