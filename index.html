@@ -49,8 +49,8 @@ body.collapsed .grid > div:nth-child(2){display:none}
 .twin-profile-list .row .del{background:transparent;border:none;color:#fca5a5;cursor:pointer;font-size:.7rem;padding:0 4px}
 .twin-menu-empty{color:var(--muted);font-style:italic;font-size:.7rem;padding:2px 0}
 @media(max-width:1380px){.topbar{grid-template-columns:auto 1fr;grid-template-rows:auto auto}.topbar-actions{grid-column:1/-1;max-width:none;justify-content:flex-start}.topbar-metrics{grid-column:1/-1}}
-@media(max-width:1100px){.topbar-metrics{grid-template-columns:repeat(4,minmax(0,1fr))}}
-@media(max-width:920px){.topbar{grid-template-columns:auto 1fr;grid-template-rows:auto auto auto}.topbar-metrics{grid-column:1/-1;grid-template-columns:repeat(4,minmax(0,1fr))}.topbar-actions{grid-column:1/-1;justify-content:flex-start}}
+@media(max-width:1280px){.topbar-metrics{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(max-width:920px){.topbar{grid-template-columns:auto 1fr;grid-template-rows:auto auto auto}.topbar-metrics{grid-column:1/-1;grid-template-columns:repeat(3,minmax(0,1fr))}.topbar-actions{grid-column:1/-1;justify-content:flex-start}}
 @media(max-width:520px){.topbar-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .statusbar{padding:3px 8px;font-size:.72rem;margin-bottom:4px;border-radius:5px}
 .drift-strip{display:flex;align-items:center;gap:6px;padding:3px 8px;margin-bottom:4px;border-radius:5px;font-size:.7rem;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#fcd34d}
@@ -123,8 +123,8 @@ input[type=checkbox]{transform:scale(1.2)}
 canvas.plot{width:100%;height:120px;display:block;background:#091120;border:1px solid #223253;border-radius:8px;touch-action:manipulation}
 canvas.plot.tall{height:170px}
 canvas.plot.short{height:78px}
-canvas.plot.tiny{height:68px}
-canvas.plot.square{aspect-ratio:1;height:auto}
+canvas.plot.tiny{height:96px}
+canvas.plot.square{aspect-ratio:1;height:auto;max-height:280px}
 .telemetry-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
 .telemetry-cell{background:rgba(15,26,46,0.5);border:1px solid #1f2c46;border-radius:5px;padding:3px 4px}
 .telemetry-label{font-size:.58rem;color:var(--muted);margin-bottom:2px;display:flex;align-items:center;gap:4px}
@@ -294,19 +294,19 @@ details.collapsible[open]>summary::after{content:' ▴'}
       </div>
       <div class="telemetry-grid">
         <div class="telemetry-cell">
-          <div class="telemetry-label">Live mismatch (twin vs reality, per beat) <span class="key" style="color:#fb7185">▮</span></div>
+          <div class="telemetry-label">Mismatch density · ridgeline of last 8 windows (120s)</div>
           <canvas id="mismatchCanvas" class="plot tiny"></canvas>
         </div>
         <div class="telemetry-cell">
-          <div class="telemetry-label">T-wave residual (cognitive-load fingerprint) <span class="key" style="color:#a78bfa">▮</span></div>
+          <div class="telemetry-label">T-wave load · live needle + recent windows</div>
           <canvas id="twaveCanvas" class="plot tiny"></canvas>
         </div>
         <div class="telemetry-cell">
-          <div class="telemetry-label">Twin-fit map (residual vs HR vs time)</div>
+          <div class="telemetry-label">Twin-fit heatmap · HR × residual + marginal densities</div>
           <canvas id="fitMapCanvas" class="plot tiny"></canvas>
         </div>
         <div class="telemetry-cell">
-          <div class="telemetry-label">Recovery time after stress events <span class="key" style="color:#34d399">▮</span></div>
+          <div class="telemetry-label">Stress-recovery bubbles · peak HR × duration × severity</div>
           <canvas id="recoveryCanvas" class="plot tiny"></canvas>
         </div>
       </div>
@@ -315,6 +315,14 @@ details.collapsible[open]>summary::after{content:' ▴'}
     <div class="card plot-card" style="margin-top:4px">
       <div class="plot-title"><span>RR tachogram</span><span class="badge" id="rrBadge">0 RR</span></div>
       <canvas id="rrCanvas" class="plot"></canvas>
+    </div>
+
+    <div class="card plot-card" style="margin-top:4px">
+      <div class="plot-title">
+        <span>RR distribution · 30s windows stacked (newest at top)</span>
+        <span class="badge" id="rrRidgeBadge">— windows</span>
+      </div>
+      <canvas id="rrRidgeCanvas" class="plot short"></canvas>
     </div>
 
     <div class="dual-plot" style="margin-top:4px">
@@ -437,7 +445,7 @@ details.collapsible[open]>summary::after{content:' ▴'}
 'use strict';
 
 const els = {};
-['status','connectBtn','reconnectBtn','disconnectBtn','clearBtn','exportBtn','reportBtn','downloadReportBtn','closeReportBtn','reportCard','reportContent','calibrateBtn','resetTwinBtn','leadChestBtn','leadFingersBtn','leadCustomBtn','motionAdaptBtn','markBtn','twinMenuBtn','twinMenuDropdown','twinMenuCurrentName','twinSaveBtn','twinSaveAsBtn','twinProfileList','twinExportBtn','twinImportBtn','twinImportCsvBtn','twinImportFile','twinImportCsvFile','anomalyValue','anomalyDetail','simHRSlider','simHRVal','predHRLabel','driftStrip','driftDetail','driftRecalBtn','bookmarkList','bookmarkCount','connectionValue','deviceValue','ecgBadge','qualityBadge','triboBadge','patBadge','templateBadge','rrBadge','poincareBadge','specBadge','hrTrendBadge','rmssdTrendBadge','hrValue','sdnnValue','rmssdValue','pnn50Value','lfhfValue','sdvalues','divergenceValue','patValue','hrDelta','sdnnDelta','rmssdDelta','pnn50Delta','lfhfDelta','divergenceDelta','patDelta','twinOrb','twinState','twinDivergence','beatStrip','insights','filterEnable','hpCut','lpCut','sqiReject','invertEcg','windowSec','serviceUuid','triboUuid','ecgUuid','rpThresh','rpThreshVal','rpRefract','rpRefractVal','twaveWin','twaveWinVal','twaveRatio','twaveRatioVal','ftSlopeThresh','ftSlopeThreshVal','ftPeakHi','ftPeakHiVal','pttMin','pttMax','pttOffset','pttOffsetVal','morphCutoff','morphCutoffVal','prematureCutoff','prematureCutoffVal','baselineDur','ecgCanvas','templateCanvas','hrHeatmapCanvas','hrHeatmapBadge','mismatchCanvas','twaveCanvas','fitMapCanvas','recoveryCanvas','telemetryBadge','rrCanvas','poincareCanvas','spectrogramCanvas','trendHRCanvas','trendRMSSDCanvas','patCanvas','triboCanvas'].forEach(id=>els[id]=document.getElementById(id));
+['status','connectBtn','reconnectBtn','disconnectBtn','clearBtn','exportBtn','reportBtn','downloadReportBtn','closeReportBtn','reportCard','reportContent','calibrateBtn','resetTwinBtn','leadChestBtn','leadFingersBtn','leadCustomBtn','motionAdaptBtn','markBtn','twinMenuBtn','twinMenuDropdown','twinMenuCurrentName','twinSaveBtn','twinSaveAsBtn','twinProfileList','twinExportBtn','twinImportBtn','twinImportCsvBtn','twinImportFile','twinImportCsvFile','anomalyValue','anomalyDetail','simHRSlider','simHRVal','predHRLabel','driftStrip','driftDetail','driftRecalBtn','bookmarkList','bookmarkCount','connectionValue','deviceValue','ecgBadge','qualityBadge','triboBadge','patBadge','templateBadge','rrBadge','poincareBadge','specBadge','hrTrendBadge','rmssdTrendBadge','hrValue','sdnnValue','rmssdValue','pnn50Value','lfhfValue','sdvalues','divergenceValue','patValue','hrDelta','sdnnDelta','rmssdDelta','pnn50Delta','lfhfDelta','divergenceDelta','patDelta','twinOrb','twinState','twinDivergence','beatStrip','insights','filterEnable','hpCut','lpCut','sqiReject','invertEcg','windowSec','serviceUuid','triboUuid','ecgUuid','rpThresh','rpThreshVal','rpRefract','rpRefractVal','twaveWin','twaveWinVal','twaveRatio','twaveRatioVal','ftSlopeThresh','ftSlopeThreshVal','ftPeakHi','ftPeakHiVal','pttMin','pttMax','pttOffset','pttOffsetVal','morphCutoff','morphCutoffVal','prematureCutoff','prematureCutoffVal','baselineDur','ecgCanvas','templateCanvas','hrHeatmapCanvas','hrHeatmapBadge','mismatchCanvas','twaveCanvas','fitMapCanvas','recoveryCanvas','telemetryBadge','rrCanvas','rrRidgeCanvas','rrRidgeBadge','poincareCanvas','spectrogramCanvas','trendHRCanvas','trendRMSSDCanvas','patCanvas','triboCanvas'].forEach(id=>els[id]=document.getElementById(id));
 
 const C = {grid:'#1c2a47',gridSoft:'#152339',axis:'#7a8eb3',tribo:'#ff6b6b',ecg:'#5aa7ff',pat:'#37d67a',foot:'#ffd166',rpeak:'#ff4d6d',twin:'#a78bfa',bg:'#091120',normal:'#22c55e',pvc:'#ef4444',pac:'#f59e0b',abnormal:'#f97316',unknown:'#475569'};
 const CLS_COLOR = {normal:C.normal,pvc:C.pvc,pac:C.pac,abnormal:C.abnormal,unknown:C.unknown};
@@ -2737,183 +2745,439 @@ function teleAxes(ctx, w, h, m){
 }
 
 // F1: Live mismatch trace
+// =============================================================
+//   F1 — STREAMING RIDGELINE: distribution of mismatch over rolling windows
+// =============================================================
+// Shows a density of beat-residual values for each ~15s window. Each window
+// is one vertical "ridge" — the height of the ridge at residual value v
+// equals how many beats in that window had that residual. New ridges scroll
+// in from the right, older ones fade. Lets you see distribution shape, not
+// just the mean: e.g. tightly clustered at 0 = good, broad = struggling,
+// bimodal = mix of clean and bad beats.
 function drawMismatch(){
   if (!els.mismatchCanvas) return;
-  const {ctx, w, h, left, right, top, bottom} = drawTelemetryFrame(els.mismatchCanvas);
-  const m = {left, right, top, bottom};
-  teleAxes(ctx, w, h, m);
-  if (state.mismatchTrace.length === 0){
+  const {ctx, w, h} = setupCv(els.mismatchCanvas);
+  ctx.clearRect(0,0,w,h); ctx.fillStyle = C.bg; ctx.fillRect(0,0,w,h);
+  const left = 22, right = 28, top = 4, bottom = 14;
+  const pw = w-left-right, ph = h-top-bottom;
+  if (state.mismatchTrace.length < 4){
     ctx.fillStyle = C.axis; ctx.font = '10px system-ui';
-    ctx.fillText('— need accumulated beats at varied HRs', left+4, h/2);
+    ctx.fillText('— accumulating beats…', left+2, h/2);
     return;
   }
-  // Show last 60s
+  // Bin the trace into 8 time windows over the last 120 s
   const tEnd = state.mismatchTrace[state.mismatchTrace.length-1].t;
-  const tStart = tEnd - 60;
-  const data = state.mismatchTrace.filter(d => d.t >= tStart);
-  const xMap = t => left + (w-left-right) * (t - tStart) / Math.max(0.1, tEnd - tStart);
-  const yMap = v => (h-bottom) - (h-bottom-top) * Math.min(1, v);
-  // Threshold line at 0.3
-  ctx.strokeStyle = '#fb7185'; ctx.setLineDash([2,3]); ctx.globalAlpha = 0.5;
-  ctx.beginPath(); ctx.moveTo(left, yMap(0.3)); ctx.lineTo(w-right, yMap(0.3)); ctx.stroke();
-  ctx.setLineDash([]); ctx.globalAlpha = 1;
-  // Filled area
-  ctx.fillStyle = 'rgba(251, 113, 133, 0.18)';
-  ctx.beginPath();
-  ctx.moveTo(xMap(data[0].t), h-bottom);
-  for (const d of data) ctx.lineTo(xMap(d.t), yMap(d.v));
-  ctx.lineTo(xMap(data[data.length-1].t), h-bottom);
-  ctx.closePath(); ctx.fill();
-  // Line
-  ctx.strokeStyle = '#fb7185'; ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  for (let i=0;i<data.length;i++){
-    const x = xMap(data[i].t), y = yMap(data[i].v);
-    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  const tStart = tEnd - 120;
+  const N_WINDOWS = 8;
+  const windowDur = 120 / N_WINDOWS;
+  const windows = Array.from({length:N_WINDOWS}, () => []);
+  for (const d of state.mismatchTrace){
+    if (d.t < tStart) continue;
+    const idx = Math.min(N_WINDOWS-1, Math.floor((d.t - tStart) / windowDur));
+    windows[idx].push(d.v);
   }
-  ctx.stroke();
-  // Last value label
-  const last = data[data.length-1];
-  ctx.fillStyle = '#fb7185'; ctx.font = 'bold 10px system-ui';
-  ctx.fillText(last.v.toFixed(2), w - right - 28, top + 10);
+  // For each window, build a 16-bin histogram of residuals
+  const N_BINS = 16;
+  const histos = windows.map(vals => {
+    if (vals.length === 0) return null;
+    const h = new Array(N_BINS).fill(0);
+    for (const v of vals){
+      const b = Math.min(N_BINS-1, Math.floor(v * N_BINS));
+      h[b]++;
+    }
+    // 3-tap smooth
+    const sm = new Array(N_BINS).fill(0);
+    for (let i=0;i<N_BINS;i++){
+      let s=0, n=0;
+      for (let j=Math.max(0,i-1); j<=Math.min(N_BINS-1,i+1); j++){ s += h[j]; n++; }
+      sm[i] = s/n;
+    }
+    return {sm, total: vals.length};
+  });
+  // Find max density across all windows for consistent scaling
+  let maxDens = 0;
+  for (const h of histos) if (h) for (const v of h.sm) if (v > maxDens) maxDens = v;
+  if (maxDens === 0) maxDens = 1;
+  // Background grid: faint horizontal at residual = 0.3 (threshold)
+  const yForResid = r => top + ph * r;     // 0 at top, 1 at bottom
+  ctx.strokeStyle = '#fb7185'; ctx.globalAlpha = 0.2; ctx.setLineDash([2,3]);
+  ctx.beginPath(); ctx.moveTo(left, yForResid(0.3)); ctx.lineTo(w-right, yForResid(0.3)); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+  // Draw each ridge
+  const ridgeW = pw / N_WINDOWS;
+  const ridgeMaxAmp = ridgeW * 0.45;
+  for (let wi=0;wi<N_WINDOWS;wi++){
+    const h = histos[wi]; if (!h) continue;
+    const cx = left + (wi + 0.5) * ridgeW;
+    const ageRatio = (N_WINDOWS - 1 - wi) / N_WINDOWS;     // 0 = newest
+    const alpha = Math.max(0.35, 1 - ageRatio*0.7);
+    // Color: gradient by current window's mean
+    let mean = 0, sumW = 0;
+    for (let b=0;b<N_BINS;b++){ mean += h.sm[b] * (b+0.5)/N_BINS; sumW += h.sm[b]; }
+    if (sumW > 0) mean /= sumW;
+    let color = '#86efac';                  // green = low residual
+    if (mean > 0.5) color = '#fb7185';      // red
+    else if (mean > 0.25) color = '#fbbf24';// amber
+    // Build the ridge as a polygon symmetric around cx
+    ctx.fillStyle = color;
+    ctx.globalAlpha = alpha * 0.55;
+    ctx.beginPath();
+    for (let b=0;b<N_BINS;b++){
+      const r = (b + 0.5) / N_BINS;
+      const y = yForResid(r);
+      const amp = (h.sm[b] / maxDens) * ridgeMaxAmp;
+      ctx.lineTo(cx + amp, y);
+    }
+    for (let b=N_BINS-1;b>=0;b--){
+      const r = (b + 0.5) / N_BINS;
+      const y = yForResid(r);
+      const amp = (h.sm[b] / maxDens) * ridgeMaxAmp;
+      ctx.lineTo(cx - amp, y);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = color; ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
   // Y-axis labels
   ctx.fillStyle = C.axis; ctx.font = '9px system-ui';
-  ctx.fillText('1.0', 2, top + 8);
-  ctx.fillText('0', 2, h - bottom - 1);
+  ctx.fillText('0', 2, top+8);
+  ctx.fillText('0.5', 2, yForResid(0.5)+3);
+  ctx.fillText('1', 2, h-bottom-1);
+  // Time labels
+  ctx.fillText('-120s', left, h-2);
+  ctx.fillText('now', w-right-2, h-2);
+  // Latest mean as big number on right
+  const latest = histos[N_WINDOWS-1];
+  if (latest && latest.total > 0){
+    let mean=0, sumW=0;
+    for (let b=0;b<N_BINS;b++){ mean += latest.sm[b]*(b+0.5)/N_BINS; sumW += latest.sm[b]; }
+    if (sumW > 0) mean /= sumW;
+    ctx.fillStyle = '#fde68a'; ctx.font = 'bold 11px system-ui';
+    ctx.textAlign = 'right';
+    ctx.fillText(mean.toFixed(2), w-2, top+10);
+    ctx.font = '8px system-ui'; ctx.fillStyle = C.axis;
+    ctx.fillText('mean', w-2, top+18);
+    ctx.textAlign = 'left';
+  }
 }
 
-// CC-new1: T-wave residual trace
+// =============================================================
+//   CC-new1 — VERTICAL THERMOMETER + 7-WINDOW HISTORY STRIPES
+// =============================================================
+// Left half: vertical gradient column (green→amber→red) with a horizontal
+// needle showing the current (smoothed) T-wave residual. Right half: 7
+// stacked horizontal stripes, each colored by avg T-residual in successive
+// ~15s windows. Newest at top. Reading the stripes top-to-bottom shows the
+// trend over the last ~100 seconds at a glance.
 function drawTwave(){
   if (!els.twaveCanvas) return;
-  const {ctx, w, h, left, right, top, bottom} = drawTelemetryFrame(els.twaveCanvas);
-  const m = {left, right, top, bottom};
-  teleAxes(ctx, w, h, m);
+  const {ctx, w, h} = setupCv(els.twaveCanvas);
+  ctx.clearRect(0,0,w,h); ctx.fillStyle = C.bg; ctx.fillRect(0,0,w,h);
   if (state.twaveTrace.length === 0){
     ctx.fillStyle = C.axis; ctx.font = '10px system-ui';
-    ctx.fillText('— sympathetic-load proxy from T-wave region', left+4, h/2);
+    ctx.fillText('— sympathetic-load fingerprint', 8, h/2);
     return;
   }
-  const tEnd = state.twaveTrace[state.twaveTrace.length-1].t;
-  const tStart = tEnd - 120;       // longer window for slow trends
-  const data = state.twaveTrace.filter(d => d.t >= tStart);
-  const xMap = t => left + (w-left-right) * (t - tStart) / Math.max(0.1, tEnd - tStart);
-  const yMap = v => (h-bottom) - (h-bottom-top) * Math.min(1, v);
-  // Smooth via short moving average for visual clarity
-  const smooth = [];
-  const win = 5;
-  for (let i=0;i<data.length;i++){
-    let s=0, n=0;
-    for (let j=Math.max(0,i-win);j<=Math.min(data.length-1,i+win);j++){ s += data[j].v; n++; }
-    smooth.push({t: data[i].t, v: s/n});
-  }
-  // Filled
-  ctx.fillStyle = 'rgba(167, 139, 250, 0.18)';
+  // Layout: thermometer 30%, stripes 70%
+  const therm = {left:8, right:Math.floor(w*0.3), top:6, bottom:18};
+  const strips = {left:therm.right+10, right:w-12, top:6, bottom:18};
+  // ===== gradient column =====
+  const colW = therm.right - therm.left - 4;
+  const colX = therm.left + 4;
+  const colY = therm.top;
+  const colH = h - therm.top - therm.bottom;
+  // Build gradient: green at bottom (residual=0), amber middle (0.5), red top (1)
+  const grad = ctx.createLinearGradient(0, colY, 0, colY+colH);
+  grad.addColorStop(0, '#fb7185');         // top = high residual
+  grad.addColorStop(0.5, '#fbbf24');       // mid
+  grad.addColorStop(1, '#86efac');         // bottom = low residual
+  ctx.fillStyle = grad;
+  // rounded rect
+  const r = 4;
   ctx.beginPath();
-  ctx.moveTo(xMap(smooth[0].t), h-bottom);
-  for (const d of smooth) ctx.lineTo(xMap(d.t), yMap(d.v));
-  ctx.lineTo(xMap(smooth[smooth.length-1].t), h-bottom);
+  ctx.moveTo(colX+r, colY);
+  ctx.arcTo(colX+colW, colY, colX+colW, colY+r, r);
+  ctx.arcTo(colX+colW, colY+colH, colX+colW-r, colY+colH, r);
+  ctx.arcTo(colX, colY+colH, colX, colY+colH-r, r);
+  ctx.arcTo(colX, colY, colX+r, colY, r);
   ctx.closePath(); ctx.fill();
-  // Line
-  ctx.strokeStyle = '#a78bfa'; ctx.lineWidth = 1.5;
+  // Needle: current smoothed value
+  const recent = state.twaveTrace.slice(-8);
+  const cur = recent.reduce((a,b)=>a+b.v,0) / recent.length;
+  const yForVal = v => colY + colH * (1 - Math.min(1, v));
+  const ny = yForVal(cur);
+  // Needle: black bar with white outline + arrow pointing in from right
+  ctx.fillStyle = '#0a1124';
+  ctx.fillRect(colX-3, ny-2, colW+6, 4);
+  ctx.fillStyle = '#fde68a';
+  ctx.fillRect(colX-2, ny-1.5, colW+4, 3);
+  // Arrow on right side
   ctx.beginPath();
-  for (let i=0;i<smooth.length;i++){
-    const x = xMap(smooth[i].t), y = yMap(smooth[i].v);
-    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  ctx.moveTo(colX+colW+8, ny);
+  ctx.lineTo(colX+colW+3, ny-4);
+  ctx.lineTo(colX+colW+3, ny+4);
+  ctx.closePath();
+  ctx.fillStyle = '#fde68a'; ctx.fill();
+  // Tick labels on left of column
+  ctx.fillStyle = C.axis; ctx.font = '8px system-ui'; ctx.textAlign = 'right';
+  ctx.fillText('1.0', colX-3, colY+8);
+  ctx.fillText('0.5', colX-3, colY+colH/2+3);
+  ctx.fillText('0', colX-3, colY+colH);
+  ctx.textAlign = 'left';
+  // Current value above the column
+  ctx.fillStyle = '#fde68a'; ctx.font = 'bold 10px system-ui';
+  ctx.textAlign = 'center';
+  ctx.fillText(cur.toFixed(2), colX+colW/2, h-4);
+  ctx.textAlign = 'left';
+  // ===== history stripes =====
+  const N_STRIPES = 7;
+  const STRIPE_DUR = 15;
+  const tEnd = state.twaveTrace[state.twaveTrace.length-1].t;
+  const stripeW = strips.right - strips.left;
+  const stripeH = (h - strips.top - strips.bottom) / N_STRIPES;
+  for (let i=0;i<N_STRIPES;i++){
+    // i=0 = newest
+    const winStart = tEnd - (i+1)*STRIPE_DUR;
+    const winEnd   = tEnd - i*STRIPE_DUR;
+    const vals = state.twaveTrace.filter(d => d.t >= winStart && d.t < winEnd);
+    const y = strips.top + i*stripeH;
+    if (vals.length === 0){
+      ctx.fillStyle = 'rgba(36, 53, 83, 0.5)';
+      ctx.fillRect(strips.left, y+1, stripeW, stripeH-2);
+      continue;
+    }
+    const mean = vals.reduce((a,b)=>a+b.v,0) / vals.length;
+    // Color: green→amber→red based on mean
+    let R,G,B;
+    if (mean < 0.25){ const t = mean/0.25; R=52+(251-52)*t; G=211+(191-211)*t; B=153+(36-153)*t; }
+    else if (mean < 0.5){ const t = (mean-0.25)/0.25; R=251; G=191+(113-191)*t; B=36+(133-36)*t; }
+    else { R=251; G=113; B=133; }
+    R=R|0; G=G|0; B=B|0;
+    ctx.fillStyle = `rgb(${R},${G},${B})`;
+    ctx.fillRect(strips.left, y+1, stripeW, stripeH-2);
+    // mean number on the stripe
+    ctx.fillStyle = '#0a1124'; ctx.font = 'bold 9px system-ui';
+    ctx.textAlign = 'right';
+    ctx.fillText(mean.toFixed(2), strips.right-4, y+stripeH/2+3);
+    ctx.textAlign = 'left';
   }
-  ctx.stroke();
-  // Last value label
-  const last = smooth[smooth.length-1];
-  ctx.fillStyle = '#a78bfa'; ctx.font = 'bold 10px system-ui';
-  ctx.fillText(last.v.toFixed(2), w - right - 28, top + 10);
-  ctx.fillStyle = C.axis; ctx.font = '9px system-ui';
-  ctx.fillText('1.0', 2, top + 8);
-  ctx.fillText('0', 2, h - bottom - 1);
+  // labels above and below stripes column
+  ctx.fillStyle = C.axis; ctx.font = '8px system-ui';
+  ctx.fillText('newest', strips.left, strips.top-1);
+  ctx.fillText(`${N_STRIPES*STRIPE_DUR}s ago`, strips.left, h-4);
 }
 
-// CC-new4: state-dependent twin-fit map (HR vs residual)
-// Each beat is a point at (hr, residual). Older points fade.
+// =============================================================
+//   CC-new4 — TWIN-FIT 2D HEATMAP (HR × residual) + MARGINAL DENSITIES
+// =============================================================
+// Center: 2D histogram of (HR, residual) bins, color by log(count). Bottom
+// marginal: 1D histogram of HR (where you spent time). Right marginal: 1D
+// histogram of residuals. Together: where you were, AND how well your twin
+// fit at each region.
 function drawFitMap(){
   if (!els.fitMapCanvas) return;
-  const {ctx, w, h, left, right, top, bottom} = drawTelemetryFrame(els.fitMapCanvas);
-  teleAxes(ctx, w, h, {left, right, top, bottom});
+  const {ctx, w, h} = setupCv(els.fitMapCanvas);
+  ctx.clearRect(0,0,w,h); ctx.fillStyle = C.bg; ctx.fillRect(0,0,w,h);
   if (state.fitMap.length < 5){
     ctx.fillStyle = C.axis; ctx.font = '10px system-ui';
-    ctx.fillText('— accumulating: shows where twin fits well/poorly', left+4, h/2);
+    ctx.fillText('— accumulating: HR vs twin-fit', 8, h/2);
     return;
   }
-  // X: HR, Y: residual
-  const hrs = state.fitMap.map(d => d.hr);
-  const xLo = Math.max(40, Math.min(...hrs) - 5);
-  const xHi = Math.min(160, Math.max(...hrs) + 5);
-  const xMap = v => left + (w-left-right) * (v - xLo) / Math.max(1, xHi - xLo);
-  const yMap = v => (h-bottom) - (h-bottom-top) * Math.min(1, v);
-  // Faint grid
-  ctx.strokeStyle = C.axis; ctx.globalAlpha = 0.15;
-  for (let g=0.25; g<1; g+=0.25){
-    ctx.beginPath(); ctx.moveTo(left, yMap(g)); ctx.lineTo(w-right, yMap(g)); ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
-  // Threshold band at residual=0.3
-  ctx.fillStyle = 'rgba(251, 113, 133, 0.10)';
-  ctx.fillRect(left, yMap(1), w-left-right, yMap(0.3) - yMap(1));
-  // Points: color by recency (newer = brighter green→amber→red as residual grows)
+  // Layout: main heatmap, bottom marginal (HR), right marginal (residual)
+  const MARGIN_H = 8, MARGIN_V = 10;
+  const LEFT = 22, RIGHT = 22, TOP = 4, BOTTOM = 14;
+  const main = {
+    left: LEFT, right: w-LEFT-RIGHT-MARGIN_H,
+    top: TOP, bottom: h-TOP-BOTTOM-MARGIN_V,
+  };
+  main.w = main.right - main.left;
+  main.h = main.bottom - main.top;
+  const botMarg = { left: main.left, right: main.right, top: main.bottom + 2, bottom: h-BOTTOM };
+  const rightMarg = { left: main.right + 2, right: w-2, top: main.top, bottom: main.bottom };
+  // Bin definitions
+  const N_HR = 14;
+  const N_R = 8;
+  const hrLo = 40, hrHi = 140;
+  // Filter recent points (< 4 minutes old) so the map represents recent state
   const tNow = state.fitMap[state.fitMap.length-1].t;
-  for (const d of state.fitMap){
-    if (d.hr < xLo || d.hr > xHi) continue;
-    const age = (tNow - d.t) / 120;          // 2 minute decay
-    const alpha = Math.max(0.15, 1 - age);
-    // Color by residual: 0 → green, 0.5 → amber, 1.0 → red
-    let r,g,b;
-    if (d.r < 0.25){ r=52; g=211; b=153; }
-    else if (d.r < 0.5){ r=251; g=191; b=36; }
-    else { r=251; g=113; b=133; }
-    ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
-    ctx.beginPath(); ctx.arc(xMap(d.hr), yMap(d.r), 2.5, 0, Math.PI*2); ctx.fill();
+  const points = state.fitMap.filter(d => tNow - d.t < 240);
+  const hrBin = hr => Math.max(0, Math.min(N_HR-1, Math.floor((hr-hrLo)/(hrHi-hrLo)*N_HR)));
+  const rBin = r => Math.max(0, Math.min(N_R-1, Math.floor(r*N_R)));
+  const grid = Array.from({length:N_HR}, () => new Array(N_R).fill(0));
+  const hrHist = new Array(N_HR).fill(0);
+  const rHist = new Array(N_R).fill(0);
+  for (const d of points){
+    const ix = hrBin(d.hr);
+    const iy = rBin(d.r);
+    grid[ix][iy]++;
+    hrHist[ix]++;
+    rHist[iy]++;
   }
-  // Axis labels
-  ctx.fillStyle = C.axis; ctx.font = '9px system-ui';
-  ctx.fillText(xLo.toFixed(0), left, h-2);
-  ctx.fillText(xHi.toFixed(0)+' bpm', w-right-30, h-2);
-  ctx.fillText('1.0', 2, top+8);
-  ctx.fillText('0', 2, h-bottom-1);
-}
-
-// CC-new3: Recovery-time strip (each event is a horizontal bar)
-function drawRecovery(){
-  if (!els.recoveryCanvas) return;
-  const {ctx, w, h, left, right, top, bottom} = drawTelemetryFrame(els.recoveryCanvas);
-  teleAxes(ctx, w, h, {left, right, top, bottom});
-  if (state.recoveryEvents.length === 0){
-    ctx.fillStyle = C.axis; ctx.font = '10px system-ui';
-    ctx.fillText('— no stress events recorded yet (HR rises above baseline+20%)', left+4, h/2);
-    return;
-  }
-  const ev = state.recoveryEvents.slice(-12);   // last 12 events
-  const tNow = state.e_x.length ? state.e_x[state.e_x.length-1] : 0;
-  const tStart = Math.min(...ev.map(e => e.tStart));
-  const span = Math.max(60, tNow - tStart);
-  const xMap = t => left + (w-left-right) * (t - tStart) / span;
-  const lineH = (h - top - bottom) / Math.max(ev.length, 1);
-  const maxDur = Math.max(...ev.map(e => e.dur), 30);
-  for (let i=0;i<ev.length;i++){
-    const e = ev[i];
-    const y = top + i * lineH + lineH*0.2;
-    const x1 = xMap(e.tStart), x2 = xMap(e.tEnd);
-    // Color: short recovery = green, long recovery = red
-    const ratio = Math.min(1, e.dur / maxDur);
-    const r = (52*(1-ratio) + 251*ratio)|0;
-    const g = (211*(1-ratio) + 113*ratio)|0;
-    const b = (153*(1-ratio) + 133*ratio)|0;
-    ctx.fillStyle = `rgba(${r},${g},${b},0.6)`;
-    ctx.fillRect(x1, y, Math.max(2, x2-x1), Math.max(3, lineH*0.6));
-    if (lineH > 10){
-      ctx.fillStyle = '#fff'; ctx.font = 'bold 8px system-ui';
-      ctx.fillText(`${e.dur.toFixed(0)}s • peak ${e.peakHR.toFixed(0)} bpm`, x1+3, y+lineH*0.55);
+  // Find max for color scaling (use log)
+  let maxCount = 0;
+  for (let i=0;i<N_HR;i++) for (let j=0;j<N_R;j++) if (grid[i][j]>maxCount) maxCount = grid[i][j];
+  const logMax = Math.log(maxCount + 1);
+  // Cell colors: residual 0 → green, 0.5 → amber, 1 → red. Intensity = log count
+  const cellW = main.w / N_HR;
+  const cellH = main.h / N_R;
+  for (let i=0;i<N_HR;i++){
+    for (let j=0;j<N_R;j++){
+      const count = grid[i][j];
+      if (count === 0) continue;
+      const intensity = Math.log(count+1) / logMax;
+      // residual bin → color
+      const r = (j+0.5)/N_R;
+      let R,G,B;
+      if (r < 0.25){ const t=r/0.25; R=52+(251-52)*t; G=211+(191-211)*t; B=153+(36-153)*t; }
+      else if (r < 0.5){ const t=(r-0.25)/0.25; R=251; G=191+(113-191)*t; B=36+(133-36)*t; }
+      else { R=251; G=113; B=133; }
+      R=R|0; G=G|0; B=B|0;
+      const alpha = 0.20 + 0.80*intensity;
+      ctx.fillStyle = `rgba(${R},${G},${B},${alpha})`;
+      // y-axis: residual 0 at top, 1 at bottom (inverted)
+      const y = main.bottom - (j+1)*cellH;
+      const x = main.left + i*cellW;
+      ctx.fillRect(x+0.5, y+0.5, cellW-1, cellH-1);
     }
   }
-  ctx.fillStyle = C.axis; ctx.font = '9px system-ui';
-  const med = ev.map(e => e.dur).sort((a,b)=>a-b)[Math.floor(ev.length/2)];
-  ctx.fillText(`${ev.length} events · median ${med.toFixed(0)}s`, left+2, h-2);
+  // Frame around main
+  ctx.strokeStyle = C.axis; ctx.globalAlpha = 0.4; ctx.lineWidth = 1;
+  ctx.strokeRect(main.left+0.5, main.top+0.5, main.w-1, main.h-1);
+  ctx.globalAlpha = 1;
+  // Threshold line at residual 0.3
+  ctx.strokeStyle = '#fb7185'; ctx.setLineDash([2,3]); ctx.globalAlpha = 0.45;
+  const threshY = main.bottom - main.h * (1 - 0.3);
+  ctx.beginPath(); ctx.moveTo(main.left, threshY); ctx.lineTo(main.right, threshY); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+  // Bottom marginal: HR distribution
+  const maxHR = Math.max(...hrHist, 1);
+  for (let i=0;i<N_HR;i++){
+    if (hrHist[i] === 0) continue;
+    const barH = (hrHist[i]/maxHR) * (botMarg.bottom - botMarg.top);
+    const x = botMarg.left + i*cellW;
+    ctx.fillStyle = 'rgba(124, 196, 255, 0.55)';
+    ctx.fillRect(x+0.5, botMarg.bottom-barH, cellW-1, barH);
+  }
+  // Right marginal: residual distribution
+  const maxR = Math.max(...rHist, 1);
+  for (let j=0;j<N_R;j++){
+    if (rHist[j] === 0) continue;
+    const barW = (rHist[j]/maxR) * (rightMarg.right - rightMarg.left);
+    const y = main.bottom - (j+1)*cellH;
+    // Color by residual zone
+    const r = (j+0.5)/N_R;
+    let col = '#86efac';
+    if (r > 0.5) col = '#fb7185';
+    else if (r > 0.25) col = '#fbbf24';
+    ctx.fillStyle = col + 'aa';
+    ctx.fillRect(rightMarg.left, y+0.5, barW, cellH-1);
+  }
+  // Axis labels
+  ctx.fillStyle = C.axis; ctx.font = '8px system-ui';
+  ctx.fillText('40', main.left-4, h-4);
+  ctx.fillText('90', main.left + main.w/2 - 6, h-4);
+  ctx.fillText('140', main.right-12, h-4);
+  ctx.fillText('bpm', main.left + main.w/2 - 8, h-4-9);
+  ctx.fillText('r=0', 2, main.bottom);
+  ctx.fillText('1', 2, main.top+8);
+  // Where the user IS RIGHT NOW: a small crosshair at current beat's bin
+  const lastP = state.fitMap[state.fitMap.length-1];
+  if (lastP){
+    const ix = hrBin(lastP.hr), iy = rBin(lastP.r);
+    const cx = main.left + (ix+0.5)*cellW;
+    const cy = main.bottom - (iy+0.5)*cellH;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI*2); ctx.stroke();
+    ctx.strokeStyle = '#fde68a';
+    ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, Math.PI*2); ctx.stroke();
+  }
+}
+
+// =============================================================
+//   CC-new3 — RECOVERY BUBBLE CHART
+// =============================================================
+// Each stress event = one bubble. x = event time (most recent right),
+// y = peak HR reached, area ∝ recovery duration, color = severity (slow
+// recovery = red). Lets you compare events at a glance, not as a list.
+function drawRecovery(){
+  if (!els.recoveryCanvas) return;
+  const {ctx, w, h} = setupCv(els.recoveryCanvas);
+  ctx.clearRect(0,0,w,h); ctx.fillStyle = C.bg; ctx.fillRect(0,0,w,h);
+  const left = 22, right = 6, top = 6, bottom = 14;
+  const pw = w-left-right, ph = h-top-bottom;
+  if (state.recoveryEvents.length === 0){
+    ctx.fillStyle = C.axis; ctx.font = '10px system-ui';
+    ctx.fillText('— no stress events yet (HR > baseline + 20%)', left, h/2);
+    if (state.baseline){
+      ctx.font = '9px system-ui'; ctx.fillStyle = '#86efac';
+      ctx.fillText(`trigger threshold: ${(state.baseline.hr*1.2).toFixed(0)} bpm`, left, h/2+12);
+    }
+    return;
+  }
+  const ev = state.recoveryEvents.slice(-12);
+  const tNow = state.e_x.length ? state.e_x[state.e_x.length-1] : 0;
+  // x range: cover last event back to ~600s before, but min span
+  const tFirst = ev[0].tStart;
+  const span = Math.max(60, tNow - tFirst);
+  const xMap = t => left + pw * (t - tFirst) / span;
+  // y range: from baseline-5 to max peak + 10
+  const baseHR = (state.baseline && state.baseline.hr) || 70;
+  const maxPeak = Math.max(...ev.map(e=>e.peakHR), baseHR*1.2);
+  const yLo = Math.max(40, baseHR*0.95);
+  const yHi = maxPeak + 5;
+  const yMap = hr => top + ph * (1 - (hr-yLo)/(yHi-yLo));
+  // Faint horizontal: baseline HR
+  ctx.strokeStyle = '#86efac'; ctx.setLineDash([2,3]); ctx.globalAlpha = 0.4;
+  ctx.beginPath(); ctx.moveTo(left, yMap(baseHR)); ctx.lineTo(w-right, yMap(baseHR)); ctx.stroke();
+  ctx.globalAlpha = 0.25;
+  ctx.beginPath(); ctx.moveTo(left, yMap(baseHR*1.2)); ctx.lineTo(w-right, yMap(baseHR*1.2)); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+  // Bubble area = recovery duration (clamped 5..120s → radius 3..14 px)
+  const radiusFor = dur => Math.max(3, Math.min(14, 3 + Math.sqrt(dur)*1.4));
+  for (const e of ev){
+    const cx = xMap((e.tStart + e.tEnd) / 2);
+    const cy = yMap(e.peakHR);
+    const radius = radiusFor(e.dur);
+    // Color: short = green, long = red. Scale duration relative to 60s reference
+    const sev = Math.min(1, e.dur / 60);
+    let R,G,B;
+    if (sev < 0.5){ const t = sev/0.5; R=52+(251-52)*t; G=211+(191-211)*t; B=153+(36-153)*t; }
+    else { const t = (sev-0.5)/0.5; R=251; G=191+(113-191)*t; B=36+(133-36)*t; }
+    R=R|0; G=G|0; B=B|0;
+    // Outer glow
+    ctx.fillStyle = `rgba(${R},${G},${B},0.20)`;
+    ctx.beginPath(); ctx.arc(cx, cy, radius+2, 0, Math.PI*2); ctx.fill();
+    // Filled bubble
+    ctx.fillStyle = `rgba(${R},${G},${B},0.75)`;
+    ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI*2); ctx.fill();
+    // Outline
+    ctx.strokeStyle = '#fff'; ctx.globalAlpha = 0.8; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI*2); ctx.stroke();
+    ctx.globalAlpha = 1;
+    // Duration text in bubble if big enough
+    if (radius >= 8){
+      ctx.fillStyle = '#0a1124'; ctx.font = 'bold 9px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(e.dur.toFixed(0)+'s', cx, cy+3);
+      ctx.textAlign = 'left';
+    }
+  }
+  // Y-axis labels
+  ctx.fillStyle = C.axis; ctx.font = '8px system-ui';
+  ctx.fillText(yHi.toFixed(0), 2, top+6);
+  ctx.fillText(baseHR.toFixed(0), 2, yMap(baseHR)+3);
+  ctx.fillText(yLo.toFixed(0), 2, h-bottom-1);
+  // X label
+  ctx.fillText('older', left, h-3);
+  ctx.fillText('now', w-right-16, h-3);
+  // Stats summary
+  const meanDur = ev.reduce((a,b)=>a+b.dur,0)/ev.length;
+  ctx.fillStyle = '#fde68a'; ctx.font = 'bold 9px system-ui';
+  ctx.textAlign = 'right';
+  ctx.fillText(`${ev.length} events · avg ${meanDur.toFixed(0)}s`, w-right, top+8);
+  ctx.textAlign = 'left';
 }
 
 function drawTelemetry(){
@@ -3004,6 +3268,156 @@ function highlightBookmark(bm){
   state.viewPanCenter = bm.t;
   state.viewPanUntil = performance.now() + 5000;
   setStatus(`🔖 ${bm.label || 'Bookmark'} at t=${bm.t.toFixed(0)}s · HR ${bm.snap?.hr?.toFixed(0) ?? '—'} · Anom ${bm.snap?.anomaly?.toFixed(2) ?? '—'} · Mismatch ${bm.snap?.mismatch?.toFixed(2) ?? '—'}`, 'twin');
+}
+
+// =============================================================
+//   RR DISTRIBUTION RIDGELINE — 30s windows stacked, newest at top
+// =============================================================
+// Each ridge is a smoothed kernel-density estimate of the RR intervals
+// within a 30 s window. Reading top to bottom = newest to oldest. Lets
+// you SEE rhythm changes — narrower curves mean lower variability,
+// shifted position means HR change, bimodal shape suggests bigeminy or
+// frequent ectopy mixed with normal beats.
+function drawRRRidge(){
+  if (!els.rrRidgeCanvas) return;
+  const {ctx, w, h} = setupCv(els.rrRidgeCanvas);
+  ctx.clearRect(0,0,w,h); ctx.fillStyle = C.bg; ctx.fillRect(0,0,w,h);
+  if (state.beats.length < 5){
+    ctx.fillStyle = C.axis; ctx.font = '10px system-ui';
+    ctx.fillText('— need accumulated beats…', 8, h/2);
+    return;
+  }
+  const left = 26, right = 36, top = 4, bottom = 14;
+  const pw = w-left-right, ph = h-top-bottom;
+  // X axis: RR ms range. Determine from data.
+  const allRRs = state.beats.map(b => b.rr).filter(r => r != null && r > 300 && r < 2000);
+  if (allRRs.length < 5){
+    ctx.fillStyle = C.axis; ctx.font = '10px system-ui';
+    ctx.fillText('— need more clean beats…', 8, h/2);
+    return;
+  }
+  const sortedR = allRRs.slice().sort((a,b)=>a-b);
+  const lo = sortedR[Math.floor(sortedR.length*0.02)] - 30;
+  const hi = sortedR[Math.floor(sortedR.length*0.98)] + 30;
+  const xMap = rr => left + pw * (rr - lo) / Math.max(1, hi - lo);
+  // Build N windows of 30 s each, newest first
+  const N_WINDOWS = 6;
+  const WIN_DUR = 30;
+  const tEnd = state.beats[state.beats.length-1].t;
+  const windows = [];
+  for (let i=0;i<N_WINDOWS;i++){
+    const wStart = tEnd - (i+1)*WIN_DUR;
+    const wEnd   = tEnd - i*WIN_DUR;
+    const rrs = state.beats.filter(b => b.t >= wStart && b.t < wEnd && b.rr != null && b.rr > 300 && b.rr < 2000).map(b => b.rr);
+    windows.push({ rrs, tMid: (wStart+wEnd)/2, idx: i, label: i === 0 ? 'now' : `-${i*WIN_DUR}s` });
+  }
+  // Build a 60-bin density for each window, smoothed
+  const N_BINS = 60;
+  const densities = windows.map(w => {
+    if (w.rrs.length < 2) return null;
+    const den = new Array(N_BINS).fill(0);
+    for (const rr of w.rrs){
+      const b = Math.max(0, Math.min(N_BINS-1, Math.floor((rr - lo)/(hi - lo) * N_BINS)));
+      den[b]++;
+    }
+    // Gaussian-ish smoothing kernel
+    const sm = new Array(N_BINS).fill(0);
+    const kernel = [0.06, 0.24, 0.40, 0.24, 0.06];
+    for (let i=0;i<N_BINS;i++){
+      let s = 0;
+      for (let k=-2;k<=2;k++){
+        const j = Math.max(0, Math.min(N_BINS-1, i+k));
+        s += den[j] * kernel[k+2];
+      }
+      sm[i] = s;
+    }
+    return sm;
+  });
+  // Find max density across all windows for consistent scaling
+  let maxDens = 0;
+  for (const d of densities) if (d) for (const v of d) if (v > maxDens) maxDens = v;
+  if (maxDens === 0) maxDens = 1;
+  // Each ridge has its own y-band, total ph divided by N_WINDOWS
+  const ridgeBandH = ph / N_WINDOWS;
+  // Allow ridges to overlap by 30% for the classic ridgeline look
+  const ridgeAmp = ridgeBandH * 1.4;
+  // Draw faint vertical guide at median RR
+  const medRR = sortedR[Math.floor(sortedR.length*0.5)];
+  ctx.strokeStyle = C.twin; ctx.setLineDash([3,3]); ctx.globalAlpha = 0.35;
+  ctx.beginPath(); ctx.moveTo(xMap(medRR), top); ctx.lineTo(xMap(medRR), top+ph); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+  // Draw each window from oldest (bottom) to newest (top) so newer ones
+  // overlap on top. Newest window gets brightest color.
+  // NOTE: rename the per-iteration window object from `w` to `win` so it
+  // doesn't shadow the outer canvas-width `w`.
+  for (let wi = N_WINDOWS-1; wi >= 0; wi--){
+    const den = densities[wi];
+    const yBase = top + (wi+1) * ridgeBandH - 2;     // baseline for this ridge
+    const win = windows[wi];
+    if (!den){
+      // empty window: draw faint placeholder
+      ctx.fillStyle = C.axis; ctx.font = '8px system-ui'; ctx.globalAlpha = 0.5;
+      ctx.fillText(win.label, 2, yBase-2);
+      ctx.globalAlpha = 1;
+      continue;
+    }
+    // Color brightens for newer windows
+    const ageT = wi / Math.max(1, N_WINDOWS-1);          // 0 newest, 1 oldest
+    // newest = bright purple, fade through softer tones
+    const R = (167 - 100*ageT) | 0;
+    const G = (139 - 80*ageT) | 0;
+    const B = (250 - 40*ageT) | 0;
+    const alpha = 0.45 - 0.20*ageT;
+    // Filled curve
+    ctx.fillStyle = `rgba(${R},${G},${B},${alpha})`;
+    ctx.beginPath();
+    ctx.moveTo(left, yBase);
+    for (let i=0;i<N_BINS;i++){
+      const x = left + pw * (i+0.5)/N_BINS;
+      const y = yBase - (den[i] / maxDens) * ridgeAmp;
+      ctx.lineTo(x, y);
+    }
+    // Close polygon back to baseline at right edge
+    ctx.lineTo(left + pw, yBase);
+    ctx.closePath(); ctx.fill();
+    // Outline curve
+    ctx.strokeStyle = `rgba(${R},${G},${B},${Math.min(1, alpha*1.8)})`;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    for (let i=0;i<N_BINS;i++){
+      const x = left + pw * (i+0.5)/N_BINS;
+      const y = yBase - (den[i] / maxDens) * ridgeAmp;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    // Window label on left
+    ctx.fillStyle = ageT < 0.3 ? '#fde68a' : C.axis;
+    ctx.font = ageT < 0.1 ? 'bold 9px system-ui' : '9px system-ui';
+    ctx.fillText(win.label, 2, yBase-2);
+    // Median marker for this window
+    if (win.rrs.length > 1){
+      const sorted = win.rrs.slice().sort((a,b)=>a-b);
+      const med = sorted[Math.floor(sorted.length/2)];
+      ctx.fillStyle = '#fde68a'; ctx.beginPath();
+      ctx.arc(xMap(med), yBase-2, 2.2, 0, Math.PI*2); ctx.fill();
+      // Show RR value on right side for newest window only
+      if (wi === 0){
+        ctx.fillStyle = '#fde68a'; ctx.font = 'bold 9px system-ui'; ctx.textAlign = 'right';
+        ctx.fillText(`${med.toFixed(0)}ms`, w-2, yBase-3);
+        ctx.textAlign = 'left';
+      }
+    }
+  }
+  // X axis ticks
+  ctx.fillStyle = C.axis; ctx.font = '9px system-ui';
+  ctx.fillText(`${lo.toFixed(0)}`, left, h-3);
+  ctx.fillText(`${medRR.toFixed(0)}ms`, xMap(medRR)-16, h-3);
+  ctx.fillText(`${hi.toFixed(0)}`, w-right-22, h-3);
+  // Update badge
+  if (els.rrRidgeBadge){
+    const filled = densities.filter(d => d).length;
+    els.rrRidgeBadge.textContent = `${filled} / ${N_WINDOWS} windows`;
+  }
 }
 
 function drawRR(xMin, xMax){
@@ -3485,6 +3899,7 @@ function animate(){
     drawHRHeatmap();
     drawTelemetry();
     drawRR(Math.max(0, xMax - Math.max(30, wSec*4)), xMax+0.3);
+    drawRRRidge();
     drawPoincare();
     drawSpectrogram();
     drawTrendHR();
